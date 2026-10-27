@@ -1,0 +1,21 @@
+{
+  "name": "reqlens",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "uv run --directory apps/api fastapi dev app/main.py --host 127.0.0.1 --port 7332",
+    "dev:web": "npm run dev --workspace @reqlens/web",
+    "build": "npm run build --workspace @reqlens/web",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "uv run --directory apps/api pytest",
+    "test:web": "npm run test --workspace @reqlens/web",
+    "typecheck": "npm run typecheck --workspace @reqlens/web && uv run --directory apps/api mypy app"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

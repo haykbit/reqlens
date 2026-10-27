@@ -4,7 +4,32 @@
 
 ReqLens is a local-first, evidence-based acceptance layer between product and engineering. It connects product requirements and tickets to human or agent-authored implementation changes, tests, captured decisions, and review evidence so teams can determine whether the requested product outcome was actually delivered.
 
-> ReqLens is at the product-definition stage. This repository currently describes the problem, the planned MVP, and the core domain model. It does not yet contain a working implementation.
+> ReqLens now includes a working local alpha: a typed acceptance-review API and a bilingual Studio that demonstrates the complete requirement-to-evidence workflow.
+
+## Run the alpha
+
+ReqLens uses React 19, TypeScript, Tailwind CSS, and shadcn-style primitives in the frontend, with a fully typed FastAPI/Pydantic API behind it.
+
+Prerequisites: Node.js 22+ and [uv](https://docs.astral.sh/uv/).
+
+```bash
+npm install
+uv sync --directory apps/api
+npm run dev
+```
+
+Open [http://127.0.0.1:7331](http://127.0.0.1:7331). The web app proxies its typed API calls to FastAPI on port `7332`.
+
+The current vertical slice is intentionally seeded with one realistic acceptance case (`ENG-284`). It lets you:
+
+- trace a feature through its requirement, ticket, pull request, and revision;
+- inspect acceptance criteria and their linked implementation evidence;
+- review changed files with product rationale and requirement coverage;
+- separate deterministic test results from missing evidence;
+- replay a recorded product journey step by step;
+- switch every primary product surface between English and Spanish.
+
+Actions such as running acceptance or preparing a preview currently exercise the real typed API and UI state, but do not execute arbitrary repository commands yet. That execution boundary is the next implementation milestone.
 
 ## The problem
 
@@ -48,7 +73,7 @@ This should make it possible to start from either side:
 
 ReqLens also evaluates the chain before implementation begins. If a ticket is ambiguous, contradicts its source requirement, lacks acceptance criteria, or cannot be verified, that gap should be visible before an agent or developer writes code.
 
-## Planned MVP
+## MVP direction
 
 The first useful version will cover one complete workflow:
 
@@ -59,11 +84,13 @@ The first useful version will cover one complete workflow:
 5. Run deterministic verification such as tests, linting, and type checks.
 6. Show the result in a local dashboard.
 
-The dashboard will initially provide three views:
+The current Studio provides five views:
 
-- **Requirement coverage** — what is covered, partial, missing, or unverified.
-- **Execution timeline** — what the agent read, decided, changed, and validated.
-- **Evidence-aware diff** — why a change exists and what supports it.
+- **Overview** — the acceptance chain, criteria, findings, and evidence status.
+- **Changes** — an evidence-aware diff showing why each change exists.
+- **Tests** — deterministic results, commands, assertions, and blocked profiles.
+- **Replay** — a recorded product journey tied to the reviewed revision.
+- **Activity** — product, agent, Git, test, and review events in one timeline.
 
 See [the product feature map](docs/features.md) for the planned capabilities, [the build and review protocol](docs/review-protocol.md) for the builder/reviewer workflow, [pull-request previews](docs/pr-preview.md) for isolated local application environments, [visual acceptance runs](docs/visual-acceptance.md) for recorded product evidence, [the product definition](docs/product.md) for the initial scope, and [the domain model](docs/domain-model.md) for the proposed concepts.
 
@@ -110,7 +137,7 @@ Automated evaluation provides evidence and recommendations. A human decides whet
 
 ## Current status
 
-ReqLens is being developed in public. The immediate goal is to validate the requirement-to-evidence workflow with one real feature before expanding integrations or building a broader platform.
+ReqLens is being developed in public. Version `0.1.0` validates the requirement-to-evidence workflow with a realistic local demo. The next goal is to replace fixture evidence with repository ingestion, Git diff collection, safe command profiles, and captured browser runs.
 
 ## Contributing
 
