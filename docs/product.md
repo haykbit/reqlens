@@ -2,7 +2,9 @@
 
 ## Product statement
 
-ReqLens helps developers and technical product teams verify human- and agent-authored software changes by connecting every requirement to code, tests, captured decisions, and execution evidence.
+ReqLens helps product and engineering determine whether a ticket correctly delivered its source product requirement. It does this by connecting requirements and acceptance criteria to human- or agent-authored code, tests, captured decisions, execution evidence, and an explicit human acceptance decision.
+
+ReqLens is an evidence-based acceptance product, not primarily a code-review product. Code analysis is useful when it helps evaluate requirement fulfillment, scope, correctness, risk, maintainability, or architecture fit.
 
 ## Initial user
 
@@ -19,6 +21,29 @@ The initial product is not designed for enterprise governance, multi-team report
 ## Job to be done
 
 > When an AI agent finishes implementing a feature, help me determine whether it built what I requested and show me the evidence, so I can review the result without replaying the entire coding session manually.
+
+The same job applies when the implementation is produced by a person or a mixed human-agent workflow.
+
+## Acceptance chain
+
+```text
+Product feature
+  -> Product requirement
+    -> Acceptance criteria
+      -> Work item or ticket
+        -> Implementation
+          -> Verification evidence
+            -> Human acceptance decision
+```
+
+ReqLens evaluates the integrity of every link:
+
+- Does the ticket preserve the intent of its source requirement?
+- Are its acceptance criteria complete, unambiguous, and verifiable?
+- Can every material implementation change be related to the declared scope?
+- Does each acceptance criterion have relevant implementation and verification evidence?
+- Are failures, assumptions, and deviations visible?
+- Is the final acceptance decision attached to the exact reviewed revision?
 
 ## Product surface
 
@@ -41,14 +66,16 @@ The local dashboard is provisionally named **ReqLens Studio**. The AI workflow s
 
 1. A user installs and starts ReqLens inside an existing repository.
 2. ReqLens discovers the repository and its Git worktrees.
-3. The user imports a PRD and selects a feature, acceptance criteria, work item, and worktree.
-4. The user starts Codex with the ReqLens context and local bridge enabled.
-5. ReqLens records observable events and calculates changes from the worktree's base revision.
-6. Code changes and verification results are linked to the relevant criteria.
-7. The user requests or runs approved unit, integration, API, or database checks.
-8. ReqLens computes an evidence-based coverage state without merging deterministic and model-generated judgments.
-9. The user reviews functions, diffs, tests, findings, and provenance in the local dashboard.
-10. The user accepts the result or requests follow-up changes.
+3. The user imports a PRD and connects a ticket to its source feature, requirement, and acceptance criteria.
+4. ReqLens checks whether the ticket is ready to implement and surfaces ambiguity, missing criteria, or verification gaps.
+5. The user selects the approved work item and worktree.
+6. The user starts Codex, works manually, or combines both approaches.
+7. ReqLens records available observable events and calculates changes from the worktree's base revision.
+8. Code changes and verification results are linked to the relevant criteria.
+9. The user requests or runs approved unit, integration, API, or database checks.
+10. ReqLens computes an evidence-based acceptance state without merging deterministic and model-generated judgments.
+11. The user reviews requirements, functions, diffs, tests, findings, and provenance in the local dashboard.
+12. The user accepts the ticket or requests follow-up changes.
 
 ## MVP capabilities
 

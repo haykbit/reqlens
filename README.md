@@ -2,7 +2,7 @@
 
 **See how requirements become code.**
 
-ReqLens is a local-first traceability and evaluation layer for AI-assisted software delivery. It connects product requirements to human or agent-authored implementation changes, tests, captured decisions, and review evidence so teams can understand what was built, what is known about why it was built, and whether it satisfies the original intent.
+ReqLens is a local-first, evidence-based acceptance layer between product and engineering. It connects product requirements and tickets to human or agent-authored implementation changes, tests, captured decisions, and review evidence so teams can determine whether the requested product outcome was actually delivered.
 
 > ReqLens is at the product-definition stage. This repository currently describes the problem, the planned MVP, and the core domain model. It does not yet contain a working implementation.
 
@@ -18,6 +18,12 @@ AI coding agents can move from a ticket to working code in minutes. Reviewing th
 - Which conclusions come from deterministic checks, and which come from another model?
 
 Code review tools inspect code. Agent observability tools inspect execution. ReqLens focuses on the missing connection between **product intent, implementation, and evidence**.
+
+The primary ReqLens question is not “Is this code elegant?” It is:
+
+> Did this ticket correctly implement the product requirement it came from, and what evidence supports that conclusion?
+
+Technical analysis is part of the answer when correctness, risk, maintainability, or architecture affects acceptance. It is not the product's final purpose.
 
 ## The core idea
 
@@ -39,6 +45,8 @@ This should make it possible to start from either side:
 
 - Select a requirement and inspect the code, tests, and evidence that support it.
 - Select a function or changed line and understand which requirement led to it.
+
+ReqLens also evaluates the chain before implementation begins. If a ticket is ambiguous, contradicts its source requirement, lacks acceptance criteria, or cannot be verified, that gap should be visible before an agent or developer writes code.
 
 ## Planned MVP
 

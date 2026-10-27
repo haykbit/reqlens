@@ -1,6 +1,8 @@
 # Build and review protocol
 
-ReqLens is not valuable because an AI can produce more suggestions. Its value is the traceable relationship between product intent, implementation, verification, and a human decision.
+ReqLens is not valuable because an AI can produce more suggestions. Its value is the traceable relationship between product intent, the ticket derived from it, implementation, verification, and a human acceptance decision.
+
+The ticket is the primary unit of acceptance. Code review is a supporting capability used to determine whether the ticket fulfilled the product requirement it came from.
 
 This protocol separates the implementation loop from the review loop so that a builder is not simply asked to praise or criticize its own output in the same context.
 

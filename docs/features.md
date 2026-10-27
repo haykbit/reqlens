@@ -59,6 +59,9 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 - Define required verification for an acceptance criterion.
 - Preserve the original source text and location.
 - Mark ambiguous, conflicting, or untestable requirements for review.
+- Evaluate whether a ticket preserves the intent of its source requirement before implementation starts.
+- Detect missing acceptance criteria, undefined outcomes, and criteria that have no viable verification method.
+- Expose a ticket-readiness state without silently rewriting or approving the product definition.
 
 **Does not cover:**
 
@@ -66,7 +69,7 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 - Treating generated requirements as approved without human review.
 - Automatically turning every PRD sentence into a ticket.
 
-**MVP outcome:** ReqLens can show a navigable product tree and identify exactly which acceptance criteria are in scope for a piece of work.
+**MVP outcome:** ReqLens can show a navigable product tree, explain where a ticket came from, assess whether it is ready to implement, and identify exactly which acceptance criteria are in scope.
 
 ### RL-F03 — Work item and Git worktree context
 
@@ -203,6 +206,7 @@ The detailed behavior is defined in [the build and review protocol](review-proto
 
 - A current-work view showing repository, worktree, branch, ticket, base revision, and agent status.
 - A feature and work-item view showing requirements, acceptance criteria, coverage state, and findings.
+- An acceptance-chain view connecting feature, source requirement, ticket, implementation, verification, and final decision.
 - A change explorer showing the diff, changed symbols, linked requirements, and evidence provenance.
 - A live verification view showing running and completed tests with logs and artifacts.
 - An agent timeline showing observable actions, failures, decisions, and handoff information.
@@ -215,7 +219,7 @@ The detailed behavior is defined in [the build and review protocol](review-proto
 - A replacement for GitHub pull-request review.
 - Remote collaboration in the first version.
 
-**MVP outcome:** The complete implementation story for one work item can be reviewed without switching between the PRD, terminal history, agent conversation, diff, and test logs.
+**MVP outcome:** The complete product-to-implementation story for one ticket can be evaluated without switching between the PRD, ticket, terminal history, agent conversation, diff, and test logs.
 
 ### RL-F09 — Human review, decisions, and handoff
 
