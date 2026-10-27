@@ -35,6 +35,8 @@ The complete capability breakdown lives in [the product feature map](features.md
 
 Agent context enriches the evidence but is optional. ReqLens can review any Git change. When it did not observe the implementation, it must label explanations about intent or rationale as retrospective inferences.
 
+The local dashboard is provisionally named **ReqLens Studio**. The AI workflow separates a builder completion loop from a fresh, read-only reviewer run. This prevents the product from becoming an endless stream of generic self-critique and keeps review focused on requirement coverage, evidence, scope, and material risk. See [the build and review protocol](review-protocol.md).
+
 ## First end-to-end workflow
 
 1. A user installs and starts ReqLens inside an existing repository.

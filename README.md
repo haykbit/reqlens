@@ -57,7 +57,7 @@ The dashboard will initially provide three views:
 - **Execution timeline** — what the agent read, decided, changed, and validated.
 - **Evidence-aware diff** — why a change exists and what supports it.
 
-See [the product feature map](docs/features.md) for the planned capabilities, [the product definition](docs/product.md) for the initial scope, and [the domain model](docs/domain-model.md) for the proposed concepts.
+See [the product feature map](docs/features.md) for the planned capabilities, [the build and review protocol](docs/review-protocol.md) for the builder/reviewer workflow, [the product definition](docs/product.md) for the initial scope, and [the domain model](docs/domain-model.md) for the proposed concepts.
 
 ## Product principles
 

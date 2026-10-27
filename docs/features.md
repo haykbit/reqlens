@@ -105,6 +105,7 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 - Record which agent and model produced a result when that information is available.
 - Support an explicit agent-produced implementation summary at handoff.
 - Treat agent capture as additional provenance, not as a prerequisite for reviewing a Git change.
+- Provide separate, versioned build and review workflows instead of asking one ongoing agent conversation to implement and approve its own work.
 
 **Does not cover:**
 
@@ -180,6 +181,8 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 - Show the model, analysis version, input scope, and time of evaluation.
 - Keep agent conclusions separate from deterministic verification results.
 - Prefer function- and hunk-level analysis, with line-level analysis available on demand.
+- Run review in a fresh, read-only task context and return structured findings rather than modifying code immediately.
+- Suppress generic refactoring suggestions unless they are tied to a requirement, repository rule, or material engineering risk.
 
 **Does not cover:**
 
@@ -189,6 +192,8 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 - Describing a retrospective inference as the original human author's rationale.
 
 **MVP outcome:** A user can select one changed function and receive an evidence-linked analysis that can be confirmed, rejected, or turned into follow-up work.
+
+The detailed behavior is defined in [the build and review protocol](review-protocol.md).
 
 ### RL-F08 — Local review dashboard
 
