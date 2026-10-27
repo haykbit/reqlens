@@ -55,6 +55,7 @@ The product combines four contexts that are normally fragmented across different
 - **Delivery context** — repository, worktree, branch, base revision, commit, and diff.
 - **Agent context** — observable actions, declared decisions, changes, failures, and handoff.
 - **Verification context** — required tests, executions, results, artifacts, findings, and human decisions.
+- **Visual context** — approved user journeys, recorded interface behavior, step assertions, and revision-bound video evidence.
 
 The complete capability breakdown lives in [the product feature map](features.md).
 
@@ -74,8 +75,9 @@ The local dashboard is provisionally named **ReqLens Studio**. The AI workflow s
 8. Code changes and verification results are linked to the relevant criteria.
 9. The user requests or runs approved unit, integration, API, or database checks.
 10. ReqLens computes an evidence-based acceptance state without merging deterministic and model-generated judgments.
-11. The user reviews requirements, functions, diffs, tests, findings, and provenance in the local dashboard.
-12. The user accepts the ticket or requests follow-up changes.
+11. When configured, ReqLens executes an approved product journey and records a visual Acceptance Replay.
+12. The user reviews requirements, functions, diffs, tests, visual evidence, findings, and provenance in the local dashboard.
+13. The user accepts the ticket or requests follow-up changes.
 
 ## MVP capabilities
 

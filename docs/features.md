@@ -264,6 +264,32 @@ The detailed behavior is defined in [the build and review protocol](review-proto
 - Reuse the same normalized event and evidence model.
 - Make capture capability differences visible rather than pretending that every adapter provides identical data.
 
+### RL-F16 — Visual acceptance runs
+
+**Purpose:** Record the implemented product behavior at a specific pull-request revision and make it reviewable as requirement-linked evidence.
+
+**Covers:**
+
+- Define an approved user journey from acceptance criteria.
+- Start the application in an isolated local or preview environment.
+- Let an agent or deterministic test driver operate a browser and, later, a mobile simulator.
+- Record the real interface while the scenario executes.
+- Capture step timestamps, screenshots, assertions, logs, and environment metadata alongside the video.
+- Link video segments and results to acceptance criteria.
+- Run manually from ReqLens Studio and, later, as a background pull-request job.
+- Keep artifacts local until the user explicitly publishes them.
+
+**Does not cover:**
+
+- Generating a synthetic video that only appears to demonstrate success.
+- Treating pixels as proof of invisible backend behavior.
+- Replacing automated tests or human acceptance.
+- Running against production or publishing sensitive recordings by default.
+
+**First outcome:** A reviewer can open one ticket, watch a real browser journey from the reviewed commit, jump to the step for each acceptance criterion, and inspect the assertions and logs behind the result.
+
+See [visual acceptance runs](visual-acceptance.md) for the complete workflow and safety boundaries.
+
 ## P2 — Team and governance capabilities
 
 ### RL-F13 — Shared evidence bundles

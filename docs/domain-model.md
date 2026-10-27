@@ -59,6 +59,18 @@ A required or proposed verification attached to an acceptance criterion. It desc
 
 One execution of a test plan against a specific Git revision. It records timestamps, command identity, exit state, selected output, and generated artifacts.
 
+### Acceptance scenario
+
+An approved sequence of product actions, expected visible outcomes, and deterministic assertions derived from one or more acceptance criteria.
+
+### Visual run
+
+One execution of an acceptance scenario in a configured browser or simulator against a specific Git revision. It records step timing, environment identity, status, and evidence artifacts.
+
+### Evidence artifact
+
+A revision-bound output such as a video, screenshot, log, report, or test result. Artifacts record their source, retention policy, redaction state, and whether they remain local or were explicitly published.
+
 ### Evaluation
 
 A judgment against a requirement or acceptance criterion. Evaluations may be deterministic, model-based, or human-authored and must declare which kind they are.
@@ -95,6 +107,7 @@ Project
 Acceptance criterion
   ├─ supported by -> Evidence link -> Change / Verification / Decision
   ├─ requires -> Test plan
+  ├─ demonstrated by -> Acceptance scenario -> Visual run
   ├─ assessed by -> Evaluation
   └─ resolved by -> Review decision
 ```
