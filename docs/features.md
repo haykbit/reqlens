@@ -290,6 +290,33 @@ The detailed behavior is defined in [the build and review protocol](review-proto
 
 See [visual acceptance runs](visual-acceptance.md) for the complete workflow and safety boundaries.
 
+### RL-F17 — Local pull-request previews
+
+**Purpose:** Run the exact pull-request revision as an isolated local application that can be explored, tested, and recorded from ReqLens Studio without paid ReqLens hosting.
+
+**Covers:**
+
+- Resolve a trusted PR to an exact source revision.
+- Create a disposable Git worktree without changing the user's active checkout.
+- Start the application through a repository-owned preview profile.
+- Allocate non-conflicting loopback ports and wait for application readiness.
+- Show preview state, URLs, health, build output, and application logs.
+- Open, restart, stop, and clean up the preview from ReqLens Studio.
+- Run configured tests and Acceptance Replays against the ready preview.
+- Support multiple isolated previews when host resources allow it.
+- Add optional CI and hosting-provider adapters later.
+
+**Does not cover:**
+
+- Permanent or universally free public hosting.
+- Automatic execution of untrusted fork code.
+- Production credentials, data, or network exposure by default.
+- Guaranteeing that every application can run without a configured preview profile.
+
+**First outcome:** A developer selects a trusted PR and opens its web application locally at an automatically allocated URL, with logs and ticket context visible in ReqLens Studio.
+
+See [pull-request previews](pr-preview.md) for execution modes, configuration, and security boundaries.
+
 ## P2 — Team and governance capabilities
 
 ### RL-F13 — Shared evidence bundles

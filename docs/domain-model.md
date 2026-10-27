@@ -71,6 +71,14 @@ One execution of an acceptance scenario in a configured browser or simulator aga
 
 A revision-bound output such as a video, screenshot, log, report, or test result. Artifacts record their source, retention policy, redaction state, and whether they remain local or were explicitly published.
 
+### Preview profile
+
+A repository-owned definition for preparing dependencies, starting an application, checking readiness, allocating ports, referencing environment configuration, and cleaning up a preview safely.
+
+### Preview instance
+
+One isolated execution of a preview profile against an exact pull-request revision. It identifies the disposable worktree, services, allocated URLs, lifecycle state, logs, approvals, and retention policy.
+
 ### Evaluation
 
 A judgment against a requirement or acceptance criterion. Evaluations may be deterministic, model-based, or human-authored and must declare which kind they are.
@@ -110,6 +118,12 @@ Acceptance criterion
   ├─ demonstrated by -> Acceptance scenario -> Visual run
   ├─ assessed by -> Evaluation
   └─ resolved by -> Review decision
+
+Pull-request revision
+  └─ executed as -> Preview instance
+        ├─ configured by -> Preview profile
+        ├─ exercised by -> Test run
+        └─ recorded by -> Visual run
 ```
 
 ## Coverage states

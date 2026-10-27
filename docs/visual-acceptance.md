@@ -1,6 +1,6 @@
 # Visual acceptance runs
 
-Visual acceptance turns an implemented ticket into a recorded, inspectable product journey. It is designed to help product, engineering, and QA review what a pull request actually does without requiring every reviewer to configure and run the branch locally.
+Visual acceptance turns an implemented ticket into a recorded, inspectable product journey. It is designed to help product, engineering, and QA review what a pull request actually does without requiring every reviewer to configure and run the branch locally. The journey can execute against a [ReqLens PR Preview](pr-preview.md).
 
 The output is provisionally called an **Acceptance Replay**.
 
