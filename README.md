@@ -2,7 +2,7 @@
 
 **See how requirements become code.**
 
-ReqLens is a local-first traceability and evaluation layer for AI-built software. It connects product requirements to implementation changes, tests, agent decisions, and review evidence so teams can understand what was built, why it was built, and whether it satisfies the original intent.
+ReqLens is a local-first traceability and evaluation layer for AI-assisted software delivery. It connects product requirements to human or agent-authored implementation changes, tests, captured decisions, and review evidence so teams can understand what was built, what is known about why it was built, and whether it satisfies the original intent.
 
 > ReqLens is at the product-definition stage. This repository currently describes the problem, the planned MVP, and the core domain model. It does not yet contain a working implementation.
 
@@ -57,7 +57,7 @@ The dashboard will initially provide three views:
 - **Execution timeline** — what the agent read, decided, changed, and validated.
 - **Evidence-aware diff** — why a change exists and what supports it.
 
-See [the product definition](docs/product.md) for the initial scope and [the domain model](docs/domain-model.md) for the proposed concepts.
+See [the product feature map](docs/features.md) for the planned capabilities, [the product definition](docs/product.md) for the initial scope, and [the domain model](docs/domain-model.md) for the proposed concepts.
 
 ## Product principles
 

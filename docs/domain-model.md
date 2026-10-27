@@ -4,6 +4,14 @@ This document proposes a deliberately small vocabulary for the first ReqLens pro
 
 ## Core entities
 
+### Project
+
+The application repository in which ReqLens is installed. It owns the product model, configuration, work contexts, and local evidence store.
+
+### Feature
+
+A coherent product capability that groups requirements and work items. A feature can carry labels, dependencies, and an overall review state without replacing the more precise status of its acceptance criteria.
+
 ### Requirement
 
 A product behavior, constraint, or outcome that the implementation is expected to satisfy.
@@ -23,6 +31,10 @@ An observable condition used to decide whether a requirement has been satisfied.
 
 A bounded implementation task derived from one or more acceptance criteria. It can later reference an external GitHub or Linear issue, but does not require an issue tracker in the MVP.
 
+### Work context
+
+The explicit connection between a work item and a Git worktree, branch, base revision, and active implementation session. It defines the boundary from which changes and evidence are calculated.
+
 ### Agent run
 
 One recorded execution session in which a coding agent works on a work item. It identifies the agent, model when available, repository state, start and end time, and ordered events.
@@ -38,6 +50,14 @@ A modification to an implementation artifact. The first version may store Git hu
 ### Verification
 
 A reproducible check and its result, such as a test command, type check, linter, build, or security scanner.
+
+### Test plan
+
+A required or proposed verification attached to an acceptance criterion. It describes the kind of test, approved execution profile, expected outcome, and safety constraints without storing secret values.
+
+### Test run
+
+One execution of a test plan against a specific Git revision. It records timestamps, command identity, exit state, selected output, and generated artifacts.
 
 ### Evaluation
 
@@ -61,16 +81,20 @@ The human outcome for a requirement or work item: accepted, rejected, or changes
 ## Relationships
 
 ```text
-Requirement
-  └─ contains -> Acceptance criterion
-        └─ scoped by -> Work item
-              └─ attempted in -> Agent run
-                    ├─ emits -> Decision
-                    ├─ produces -> Change
-                    └─ executes -> Verification
+Project
+  └─ contains -> Feature
+        └─ contains -> Requirement
+              └─ contains -> Acceptance criterion
+                    └─ scoped by -> Work item
+                          └─ activated in -> Work context
+                                └─ attempted in -> Agent run
+                                      ├─ emits -> Decision
+                                      ├─ produces -> Change
+                                      └─ executes -> Test run / Verification
 
 Acceptance criterion
   ├─ supported by -> Evidence link -> Change / Verification / Decision
+  ├─ requires -> Test plan
   ├─ assessed by -> Evaluation
   └─ resolved by -> Review decision
 ```
