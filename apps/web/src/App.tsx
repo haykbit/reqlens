@@ -127,12 +127,12 @@ export function App() {
 
             <SummaryStrip data={data} locale={locale} />
 
-            <div className="mt-6 flex items-center gap-1 overflow-x-auto border-b border-neutral-200">
+            <div className="mt-6 flex items-center gap-1 overflow-hidden border-b border-neutral-200">
               {(["overview", "changes", "tests", "replay", "activity"] as const).map((view) => (
                 <button
                   key={view}
                   onClick={() => setActiveView(view)}
-                  className={`relative shrink-0 px-3 pb-2.5 text-[12px] font-medium transition-colors ${activeView === view ? "text-neutral-950" : "text-neutral-400 hover:text-neutral-700"}`}
+                  className={`relative min-w-0 flex-1 whitespace-nowrap px-1.5 pb-2.5 text-[12px] font-medium transition-colors sm:flex-none sm:px-3 ${activeView === view ? "text-neutral-950" : "text-neutral-400 hover:text-neutral-700"}`}
                 >
                   {ui(viewLabel[view], locale)}
                   {activeView === view ? <span className="absolute inset-x-2 -bottom-px h-px bg-neutral-950" /> : null}
