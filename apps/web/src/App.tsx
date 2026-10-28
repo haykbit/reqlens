@@ -169,7 +169,7 @@ export function App() {
                   <RefreshCw className={`size-3.5 ${pendingAction === "sync_repository" ? "animate-spin" : ""}`} />
                   {ui("syncRepository", locale)}
                 </Button>
-                <Button variant="ghost" onClick={() => void runAction("request_changes")} disabled={pendingAction !== null}>
+                <Button aria-label={ui("requestChanges", locale)} variant="ghost" onClick={() => void runAction("request_changes")} disabled={pendingAction !== null}>
                   <CircleAlert className="size-3.5" />
                   <span className="hidden xl:inline">{ui("requestChanges", locale)}</span>
                 </Button>

@@ -3,11 +3,7 @@ import type { Locale, LocalizedText, ViewId } from "@/types";
 export const localize = (value: LocalizedText, locale: Locale) => value[locale];
 
 const dictionary = {
-  product: { en: "Product", es: "Producto" },
-  workspace: { en: "Workspace", es: "Workspace" },
   currentReview: { en: "Current review", es: "Revisión actual" },
-  projects: { en: "Projects", es: "Proyectos" },
-  settings: { en: "Settings", es: "Ajustes" },
   evidence: { en: "Evidence", es: "Evidencias" },
   acceptance: { en: "Acceptance", es: "Aceptación" },
   openPreview: { en: "Open preview", es: "Abrir preview" },
@@ -80,7 +76,6 @@ const dictionary = {
   retry: { en: "Retry", es: "Reintentar" },
   actionQueued: { en: "Action queued", es: "Acción en cola" },
   copied: { en: "Copied", es: "Copiado" },
-  search: { en: "Search", es: "Buscar" },
   evidenceStaysLocal: { en: "Evidence stays on this machine.", es: "Las evidencias permanecen en este equipo." },
   required: { en: "Required", es: "Obligatorio" },
   verification: { en: "Verification", es: "Verificación" },

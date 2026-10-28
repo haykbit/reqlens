@@ -2,14 +2,10 @@ import {
   Activity,
   Boxes,
   ChevronDown,
-  CircleDotDashed,
-  Command,
   FileCode2,
   FlaskConical,
   GitBranch,
   PlaySquare,
-  Search,
-  Settings,
 } from "lucide-react";
 
 import { ui, viewLabel } from "@/lib/i18n";
@@ -39,7 +35,7 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
       <div className="flex h-13 items-center gap-2.5 px-3.5">
         <div className="grid size-6 place-items-center rounded-md bg-neutral-950 text-[12px] font-semibold text-white">R</div>
         <span className="text-[13px] font-semibold tracking-[-0.02em] text-neutral-950">ReqLens</span>
-        <span className="ml-auto rounded border border-neutral-200 bg-white px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-neutral-500">alpha</span>
+        <span className="ml-auto rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[9px] font-medium text-neutral-500">v0.2.0</span>
       </div>
 
       <div className="px-2.5 pt-2">
@@ -78,20 +74,6 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
         </nav>
       </div>
 
-      <div className="mt-5 px-2.5">
-        <p className="px-2 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">{ui("workspace", locale)}</p>
-        <div className="mt-1.5 space-y-0.5">
-          <button className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[12px] font-medium text-neutral-500 transition-colors hover:bg-neutral-200/45 hover:text-neutral-900">
-            <CircleDotDashed className="size-3.5" strokeWidth={1.8} />
-            {ui("projects", locale)}
-          </button>
-          <button className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[12px] font-medium text-neutral-500 transition-colors hover:bg-neutral-200/45 hover:text-neutral-900">
-            <Settings className="size-3.5" strokeWidth={1.8} />
-            {ui("settings", locale)}
-          </button>
-        </div>
-      </div>
-
       <div className="mt-auto border-t border-neutral-200/80 p-2.5">
         <div className="rounded-md px-2 py-2 text-[11px] text-neutral-500">
           <div className="flex items-center gap-2">
@@ -119,13 +101,6 @@ export function Topbar({ data, locale, onLocaleChange }: { data: DashboardPayloa
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
-        <button className="hidden h-7 items-center gap-2 rounded-md border border-neutral-200 bg-white px-2 text-[11px] text-neutral-500 transition-colors hover:bg-neutral-50 sm:flex">
-          <Search className="size-3" />
-          <span>{ui("search", locale)}</span>
-          <span className="ml-3 flex items-center gap-0.5 rounded border border-neutral-200 bg-neutral-50 px-1 text-[9px] text-neutral-400">
-            <Command className="size-2.5" />K
-          </span>
-        </button>
         <div className="ml-1 flex rounded-md border border-neutral-200 bg-neutral-50 p-0.5" aria-label="Language">
           {(["en", "es"] as const).map((language) => (
             <button
@@ -140,7 +115,6 @@ export function Topbar({ data, locale, onLocaleChange }: { data: DashboardPayloa
             </button>
           ))}
         </div>
-        <button className="ml-1 grid size-7 place-items-center rounded-full bg-neutral-900 text-[10px] font-semibold text-white">HP</button>
       </div>
     </header>
   );
