@@ -1,0 +1,4 @@
+interface:
+  display_name: "ReqLens"
+  short_description: "Report real ticket and Git evidence to ReqLens"
+  default_prompt: "Use ReqLens to track this ticket and report implementation evidence."

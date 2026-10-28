@@ -1,35 +1,194 @@
+from pathlib import Path
+import subprocess
+from typing import Any
+
 from fastapi.testclient import TestClient
+import pytest
 
-from app.main import app
-
-client = TestClient(app)
-
-
-def test_health() -> None:
-    response = client.get("/api/health")
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+from app.main import create_app
 
 
-def test_dashboard_returns_traceable_acceptance_data() -> None:
-    response = client.get("/api/dashboard")
+def git(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["project"]["pull_request"] == 128
-    assert payload["summary"]["acceptance_verified"] == 4
-    assert payload["summary"]["acceptance_total"] == 5
-    assert payload["criteria"][-1]["state"] == "needs_evidence"
+
+@pytest.fixture
+def repository(tmp_path: Path) -> Path:
+    repo = tmp_path / "target-project"
+    repo.mkdir()
+    git(repo, "init", "-b", "main")
+    git(repo, "config", "user.email", "test@reqlens.local")
+    git(repo, "config", "user.name", "ReqLens Test")
+    git(repo, "remote", "add", "origin", "https://github.com/example/target-project.git")
+    (repo / "README.md").write_text("# Target project\n", encoding="utf-8")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-m", "Initial commit")
+    return repo
 
 
-def test_action_is_accepted_for_current_revision() -> None:
+@pytest.fixture
+def client(tmp_path: Path) -> TestClient:
+    return TestClient(create_app(tmp_path / "data"))
+
+
+def ticket_payload() -> dict[str, object]:
+    return {
+        "source": "linear",
+        "reference": "PROD-42",
+        "url": "https://linear.app/example/issue/PROD-42",
+        "title": "Expose a health endpoint",
+        "description": "Operators need a deterministic health signal.",
+        "feature": "Service operations",
+        "feature_reference": "OPS",
+        "requirement": "Service health can be inspected",
+        "requirement_id": "OPS-01",
+        "acceptance_criteria": [
+            {
+                "id": "OPS-01-AC1",
+                "title": "Return an OK response",
+                "detail": "GET /health returns 200 and an OK payload.",
+            }
+        ],
+    }
+
+
+def start_review(client: TestClient, repository: Path) -> dict[str, Any]:
     response = client.post(
-        "/api/actions",
-        json={"action": "run_acceptance", "revision": "7f3a91c"},
+        "/api/reviews/start",
+        json={"project_path": str(repository), "ticket": ticket_payload()},
+    )
+    assert response.status_code == 200
+    payload: dict[str, Any] = response.json()
+    return payload
+
+
+def test_health_and_empty_workspace(client: TestClient) -> None:
+    health = client.get("/api/health")
+    workspace = client.get("/api/workspace")
+
+    assert health.status_code == 200
+    assert health.json() == {"status": "ok", "version": "0.2.0"}
+    assert workspace.json() == {"reviews": [], "selected_review_id": None}
+
+
+def test_real_ticket_and_git_changes_build_dashboard(client: TestClient, repository: Path) -> None:
+    started = start_review(client, repository)
+    review_id = str(started["review_id"])
+    dashboard = started["dashboard"]
+    assert dashboard["project"]["repository"] == "github.com/example/target-project"
+    assert dashboard["project"]["branch"] == "main"
+    assert dashboard["project"]["ticket_reference"] == "PROD-42"
+    assert dashboard["changes"] == []
+    assert dashboard["criteria"][0]["state"] == "pending"
+
+    (repository / "health.py").write_text(
+        "def health() -> dict[str, str]:\n    return {'status': 'ok'}\n",
+        encoding="utf-8",
+    )
+    sync = client.post(
+        f"/api/reviews/{review_id}/sync",
+        json={
+            "criteria": [
+                {
+                    "criterion_id": "OPS-01-AC1",
+                    "state": "verified",
+                    "implementation": ["health.py:1"],
+                    "evidence_label": "API test passed",
+                }
+            ],
+            "changes": [
+                {
+                    "path": "health.py",
+                    "requirement_ids": ["OPS-01-AC1"],
+                    "summary": "Adds the health response.",
+                    "rationale": "Keeps the operational contract explicit.",
+                }
+            ],
+            "tests": [
+                {
+                    "id": "health-api",
+                    "name": "Health API contract",
+                    "command": "pytest tests/test_health.py",
+                    "kind": "api",
+                    "state": "verified",
+                    "duration_ms": 120,
+                    "assertions": 2,
+                    "requirement_ids": ["OPS-01-AC1"],
+                    "detail": "Response status and body passed.",
+                }
+            ],
+            "events": [
+                {
+                    "actor": "Codex",
+                    "title": "Health endpoint implemented",
+                    "detail": "Implementation and test completed.",
+                    "kind": "agent",
+                }
+            ],
+            "preview_url": "http://127.0.0.1:8000/health",
+            "pull_request": 7,
+        },
     )
 
-    assert response.status_code == 200
-    assert response.json()["state"] == "accepted"
-    assert response.json()["action_id"]
+    assert sync.status_code == 200
+    payload = sync.json()
+    assert payload["status"] == "verified"
+    assert payload["summary"]["acceptance_verified"] == 1
+    assert payload["summary"]["checks_passed"] == 1
+    assert payload["summary"]["additions"] == 2
+    assert payload["changes"][0]["path"] == "health.py"
+    assert "+def health()" in payload["changes"][0]["diff"]
+    assert payload["changes"][0]["rationale"]["en"] == "Keeps the operational contract explicit."
+    assert payload["project"]["pull_request"] == 7
+    assert payload["project"]["dirty"] is True
 
+
+def test_review_is_idempotent_and_persistent(tmp_path: Path, repository: Path) -> None:
+    data_dir = tmp_path / "persistent-data"
+    first_client = TestClient(create_app(data_dir))
+    first = start_review(first_client, repository)
+    second = start_review(first_client, repository)
+
+    assert first["created"] is True
+    assert second["created"] is False
+    assert second["review_id"] == first["review_id"]
+
+    restarted_client = TestClient(create_app(data_dir))
+    response = restarted_client.get(f"/api/reviews/{first['review_id']}")
+    assert response.status_code == 200
+    assert response.json()["project"]["ticket_source"] == "linear"
+
+
+def test_actions_have_real_outcomes(client: TestClient, repository: Path) -> None:
+    review_id = str(start_review(client, repository)["review_id"])
+
+    blocked = client.post(
+        f"/api/reviews/{review_id}/actions",
+        json={"action": "open_preview"},
+    )
+    assert blocked.json()["state"] == "blocked"
+
+    client.post(
+        f"/api/reviews/{review_id}/sync",
+        json={"preview_url": "http://127.0.0.1:4173"},
+    )
+    ready = client.post(
+        f"/api/reviews/{review_id}/actions",
+        json={"action": "open_preview"},
+    )
+    assert ready.json()["state"] == "accepted"
+    assert ready.json()["target_url"] == "http://127.0.0.1:4173"
+
+
+def test_non_git_directory_is_rejected(client: TestClient, tmp_path: Path) -> None:
+    response = client.post(
+        "/api/reviews/start",
+        json={"project_path": str(tmp_path), "ticket": ticket_payload()},
+    )
+    assert response.status_code == 422

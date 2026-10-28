@@ -8,9 +8,16 @@ import type { ChangeSummary, DashboardPayload, Locale } from "@/types";
 export function ChangesView({ data, locale, selectedChange, onChangeSelect }: {
   data: DashboardPayload;
   locale: Locale;
-  selectedChange: ChangeSummary;
+  selectedChange: ChangeSummary | null;
   onChangeSelect: (change: ChangeSummary) => void;
 }) {
+  if (!selectedChange) {
+    return (
+      <div className="grid min-h-[340px] place-items-center rounded-lg border border-neutral-200 bg-white p-8 text-center">
+        <div><FileCode2 className="mx-auto size-5 text-neutral-300" /><h2 className="mt-3 text-[13px] font-semibold text-neutral-800">{ui("noChanges", locale)}</h2><p className="mt-1.5 font-mono text-[10px] text-neutral-400">{data.project.base_revision} → {data.project.head_revision}</p></div>
+      </div>
+    );
+  }
   return (
     <div className="grid min-h-[560px] overflow-hidden rounded-lg border border-neutral-200 bg-white lg:grid-cols-[330px_minmax(0,1fr)]">
       <div className="border-b border-neutral-200 lg:border-r lg:border-b-0">
@@ -55,7 +62,7 @@ export function ChangesView({ data, locale, selectedChange, onChangeSelect }: {
                 <span className="ml-auto text-emerald-600">+{selectedChange.additions}</span>
                 <span className="ml-1.5 text-red-500">−{selectedChange.deletions}</span>
               </div>
-              <pre className="overflow-x-auto p-3 font-mono text-[10px] leading-[1.75] text-neutral-600"><code>{buildDiff(selectedChange)}</code></pre>
+              <pre className="max-h-[560px] overflow-auto p-3 font-mono text-[10px] leading-[1.75] text-neutral-600"><code>{selectedChange.diff || ui("noChanges", locale)}</code></pre>
             </div>
           </div>
 
@@ -67,7 +74,7 @@ export function ChangesView({ data, locale, selectedChange, onChangeSelect }: {
             <div className="border-t border-neutral-100 pt-4">
               <p className="text-[9px] font-semibold uppercase tracking-[0.09em] text-neutral-400">{ui("whyThisChange", locale)}</p>
               <p className="mt-2 text-[11px] leading-5 text-neutral-700">{localize(selectedChange.rationale, locale)}</p>
-              <p className="mt-2 text-[9px] text-neutral-400">{ui("capturedHandoff", locale)}</p>
+              <p className="mt-2 text-[9px] text-neutral-400">{data.project.ticket_source} · {data.project.ticket_reference}</p>
             </div>
             <div className="border-t border-neutral-100 pt-4">
               <p className="text-[9px] font-semibold uppercase tracking-[0.09em] text-neutral-400">{ui("relatedRequirements", locale)}</p>
@@ -80,36 +87,4 @@ export function ChangesView({ data, locale, selectedChange, onChangeSelect }: {
       </div>
     </div>
   );
-}
-
-function buildDiff(change: ChangeSummary) {
-  if (change.category === "test") {
-    return `@@ -41,6 +41,18 @@ async def test_account_lockout(repository):\n` +
-      `+    for _ in range(5):\n` +
-      `+        result = await sign_in(password="invalid")\n` +
-      `+\n` +
-      `+    assert result.reason == "account_locked"\n` +
-      `+    assert result.retry_after == timedelta(minutes=15)\n` +
-      `+    assert await repository.failed_attempts(user.id) == 5\n`;
-  }
-  if (change.category === "migration") {
-    return `@@ -0,0 +1,6 @@\n` +
-      `+ALTER TABLE accounts\n` +
-      `+  ADD COLUMN failed_attempts INTEGER NOT NULL DEFAULT 0,\n` +
-      `+  ADD COLUMN locked_until TIMESTAMPTZ;\n` +
-      `+\n` +
-      `+CREATE INDEX accounts_locked_until_idx ON accounts (locked_until);\n`;
-  }
-  return `@@ -44,8 +48,22 @@ class LockoutPolicy:\n` +
-    `+    def register_failure(self, state: AccountState, now: datetime) -> AccountState:\n` +
-    `+        attempts = state.failed_attempts + 1\n` +
-    `+        locked_until = (\n` +
-    `+            now + self.lock_duration\n` +
-    `+            if attempts >= self.max_attempts\n` +
-    `+            else None\n` +
-        `+        )\n` +
-    `+        return state.with_lockout(attempts, locked_until)\n` +
-    `+\n` +
-    `+    def can_authenticate(self, state: AccountState, now: datetime) -> bool:\n` +
-    `+        return state.locked_until is None or state.locked_until <= now\n`;
 }

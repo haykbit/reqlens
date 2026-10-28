@@ -1,4 +1,4 @@
-import { Check, CircleAlert, Clock3, Database, FlaskConical, Play, Terminal } from "lucide-react";
+import { Check, CircleAlert, Database, FlaskConical, RefreshCw, Terminal } from "lucide-react";
 
 import { SectionHeading, StatusBadge, Surface, Tag } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export function TestsView({ data, locale, onRun }: { data: DashboardPayload; loc
           <SectionHeading
             title={ui("testEvidence", locale)}
             description={ui("testEvidenceHint", locale)}
-            action={<Button size="sm" onClick={onRun}><Play className="size-3" />{ui("runAcceptance", locale)}</Button>}
+            action={<Button size="sm" onClick={onRun}><RefreshCw className="size-3" />{ui("refreshEvidence", locale)}</Button>}
           />
         </div>
         <div className="divide-y divide-neutral-100">
@@ -46,6 +46,7 @@ export function TestsView({ data, locale, onRun }: { data: DashboardPayload; loc
               </div>
             </div>
           ))}
+          {data.tests.length === 0 ? <p className="px-5 py-8 text-center text-[12px] text-neutral-500">{ui("noTests", locale)}</p> : null}
         </div>
       </Surface>
 
@@ -53,27 +54,14 @@ export function TestsView({ data, locale, onRun }: { data: DashboardPayload; loc
         <Surface className="p-4">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold text-neutral-800">{ui("verificationGate", locale)}</p>
-            <span className="text-[18px] font-semibold tracking-[-0.04em] text-neutral-950">7/8</span>
+            <span className="text-[18px] font-semibold tracking-[-0.04em] text-neutral-950">{data.summary.checks_passed}/{data.summary.checks_total}</span>
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-            <div className="h-full w-[87.5%] rounded-full bg-neutral-900" />
+            <div className="h-full rounded-full bg-neutral-900 transition-[width]" style={{ width: `${data.summary.checks_total === 0 ? 0 : (data.summary.checks_passed / data.summary.checks_total) * 100}%` }} />
           </div>
           <div className="mt-4 space-y-2.5">
-            <GateRow icon={Check} text={ui("formatLint", locale)} state="pass" />
-            <GateRow icon={Check} text={ui("typeChecks", locale)} state="pass" />
-            <GateRow icon={Check} text={ui("unitTests", locale)} state="pass" />
-            <GateRow icon={Check} text={ui("integrationTests", locale)} state="pass" />
-            <GateRow icon={CircleAlert} text={ui("auditDatabaseAssertion", locale)} state="wait" />
-          </div>
-        </Surface>
-
-        <Surface className="border-blue-200/80 bg-blue-50/35 p-4">
-          <div className="flex gap-2.5">
-            <Clock3 className="mt-0.5 size-3.5 shrink-0 text-blue-700" />
-            <div>
-              <p className="text-[11px] font-semibold text-blue-900">{ui("waitingProfile", locale)}</p>
-              <p className="mt-1.5 text-[10px] leading-4 text-blue-800/70">{ui("waitingProfileBody", locale)}</p>
-            </div>
+            {data.tests.map((test) => <GateRow key={test.id} icon={test.state === "verified" ? Check : CircleAlert} text={localize(test.name, locale)} state={test.state === "verified" ? "pass" : "wait"} />)}
+            {data.tests.length === 0 ? <p className="text-[10px] leading-4 text-neutral-500">{ui("waitingForAgent", locale)}</p> : null}
           </div>
         </Surface>
       </div>

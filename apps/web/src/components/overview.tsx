@@ -8,7 +8,7 @@ import type { AcceptanceCriterion, DashboardPayload, Locale } from "@/types";
 export function OverviewView({ data, locale, selectedCriterion, onCriterionSelect }: {
   data: DashboardPayload;
   locale: Locale;
-  selectedCriterion: AcceptanceCriterion;
+  selectedCriterion: AcceptanceCriterion | null;
   onCriterionSelect: (criterion: AcceptanceCriterion) => void;
 }) {
   return (
@@ -39,7 +39,7 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
           </div>
           <div className="divide-y divide-neutral-100">
             {data.criteria.map((criterion) => {
-              const active = selectedCriterion.id === criterion.id;
+              const active = selectedCriterion?.id === criterion.id;
               return (
                 <button
                   key={criterion.id}
@@ -66,6 +66,7 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
                 </button>
               );
             })}
+            {data.criteria.length === 0 ? <p className="px-5 py-8 text-center text-[12px] text-neutral-500">{ui("noCriteria", locale)}</p> : null}
           </div>
         </Surface>
       </div>
@@ -75,7 +76,7 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
           <div className="border-b border-neutral-100 px-4 py-3.5">
             <SectionHeading title={ui("selectedCriterion", locale)} />
           </div>
-          <div className="p-4">
+          {selectedCriterion ? <div className="p-4">
             <div className="flex items-center gap-2">
               <Tag tone="blue">{selectedCriterion.id}</Tag>
               <StatusBadge state={selectedCriterion.state} locale={locale} />
@@ -101,10 +102,10 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
                 </div>
               </div>
             </div>
-          </div>
+          </div> : <p className="px-4 py-8 text-center text-[12px] text-neutral-500">{ui("noCriteria", locale)}</p>}
         </Surface>
 
-        <Surface className="overflow-hidden border-amber-200/80">
+        {data.findings.length > 0 ? <Surface className="overflow-hidden border-amber-200/80">
           <div className="border-b border-amber-100 bg-amber-50/60 px-4 py-3.5">
             <div className="flex items-center gap-2">
               <CircleAlert className="size-3.5 text-amber-700" />
@@ -116,8 +117,8 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
             {data.findings.map((finding) => (
               <div key={finding.id}>
                 <div className="flex items-center gap-2">
-                  <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-700">{ui("required", locale)}</span>
-                  <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400">{ui("verification", locale)}</span>
+                  <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-700">{finding.severity}</span>
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400">{finding.category}</span>
                 </div>
                 <p className="mt-2.5 text-[12px] font-medium leading-4 text-neutral-800">{localize(finding.title, locale)}</p>
                 <p className="mt-1.5 text-[10px] leading-4 text-neutral-500">{localize(finding.detail, locale)}</p>
@@ -128,7 +129,7 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
               </div>
             ))}
           </div>
-        </Surface>
+        </Surface> : <Surface className="p-4"><div className="flex items-center gap-2 text-[11px] font-medium text-emerald-700"><Check className="size-3.5" />{ui("noFindings", locale)}</div></Surface>}
 
         <div className="grid grid-cols-2 gap-2">
           <Metric icon={Layers3} label={ui("acceptance", locale)} value={`${data.summary.acceptance_verified}/${data.summary.acceptance_total}`} />

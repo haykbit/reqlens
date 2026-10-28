@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ApiModel(BaseModel):
@@ -21,13 +21,139 @@ class EvidenceState(StrEnum):
     FAILED = "failed"
 
 
+class TicketCriterionInput(ApiModel):
+    id: str
+    title: str
+    detail: str = ""
+
+
+class TicketInput(ApiModel):
+    source: Literal["linear", "jira", "asana", "github", "manual"]
+    reference: str
+    url: str | None = None
+    title: str
+    description: str = ""
+    feature: str | None = None
+    feature_reference: str | None = None
+    requirement: str | None = None
+    requirement_id: str | None = None
+    acceptance_criteria: list[TicketCriterionInput] = Field(default_factory=list)
+
+
+class StartReviewRequest(ApiModel):
+    project_path: str
+    ticket: TicketInput
+    base_revision: str | None = None
+
+
+class CriterionEvidenceInput(ApiModel):
+    criterion_id: str
+    state: EvidenceState
+    implementation: list[str] = Field(default_factory=list)
+    evidence_label: str
+
+
+class ChangeAnnotationInput(ApiModel):
+    path: str
+    requirement_ids: list[str] = Field(default_factory=list)
+    summary: str
+    rationale: str
+
+
+class TestEvidenceInput(ApiModel):
+    id: str
+    name: str
+    command: str
+    kind: Literal["unit", "integration", "api", "database", "e2e", "lint", "typecheck"]
+    state: EvidenceState
+    duration_ms: int | None = None
+    assertions: int = 0
+    requirement_ids: list[str] = Field(default_factory=list)
+    detail: str = ""
+
+
+class FindingInput(ApiModel):
+    id: str
+    severity: Literal["required", "recommended", "optional"]
+    category: Literal["coverage", "scope", "correctness", "verification", "maintainability"]
+    title: str
+    detail: str
+    requirement_ids: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    action: str
+
+
+class ReplayStepInput(ApiModel):
+    id: str
+    order: int
+    title: str
+    expectation: str
+    state: EvidenceState
+    timestamp_seconds: int
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class AgentEventInput(ApiModel):
+    actor: str = "Codex"
+    title: str
+    detail: str = ""
+    kind: Literal["product", "agent", "git", "test", "review"] = "agent"
+
+
+class SyncReviewRequest(ApiModel):
+    criteria: list[CriterionEvidenceInput] | None = None
+    changes: list[ChangeAnnotationInput] | None = None
+    tests: list[TestEvidenceInput] | None = None
+    findings: list[FindingInput] | None = None
+    replay_steps: list[ReplayStepInput] | None = None
+    events: list[AgentEventInput] = Field(default_factory=list)
+    preview_url: str | None = None
+    pull_request: int | None = None
+
+
+class StoredEvent(ApiModel):
+    id: str
+    timestamp: str
+    actor: str
+    title: str
+    detail: str
+    kind: Literal["product", "agent", "git", "test", "review"]
+
+
+class ReviewRecord(ApiModel):
+    id: str
+    project_id: str
+    project_path: str
+    base_revision: str
+    ticket: TicketInput
+    criteria: list[CriterionEvidenceInput] = Field(default_factory=list)
+    changes: list[ChangeAnnotationInput] = Field(default_factory=list)
+    tests: list[TestEvidenceInput] = Field(default_factory=list)
+    findings: list[FindingInput] = Field(default_factory=list)
+    replay_steps: list[ReplayStepInput] = Field(default_factory=list)
+    events: list[StoredEvent] = Field(default_factory=list)
+    preview_url: str | None = None
+    pull_request: int | None = None
+    created_at: str
+    updated_at: str
+
+
 class ProjectContext(ApiModel):
+    project_id: str
+    review_id: str
+    repository_path: str
     repository: str
     branch: str
     worktree: str
     base_revision: str
     head_revision: str
-    pull_request: int
+    pull_request: int | None
+    ticket_reference: str
+    ticket_source: str
+    ticket_url: str | None
+    preview_url: str | None
+    dirty: bool
+    updated_at: str
 
 
 class ProductNode(ApiModel):
@@ -56,13 +182,14 @@ class ChangeSummary(ApiModel):
     requirements: list[str]
     summary: LocalizedText
     rationale: LocalizedText
+    diff: str
 
 
 class TestResult(ApiModel):
     id: str
     name: LocalizedText
     command: str
-    kind: Literal["unit", "integration", "api", "database", "e2e"]
+    kind: Literal["unit", "integration", "api", "database", "e2e", "lint", "typecheck"]
     state: EvidenceState
     duration_ms: int | None
     assertions: int
@@ -126,13 +253,36 @@ class DashboardPayload(ApiModel):
     summary: DashboardSummary
 
 
-class ActionRequest(ApiModel):
-    action: Literal["run_acceptance", "open_preview", "request_changes"]
-    revision: str
+class ReviewListItem(ApiModel):
+    id: str
+    project_id: str
+    repository: str
+    repository_path: str
+    ticket_reference: str
+    ticket_source: str
+    title: str
+    branch: str
+    status: EvidenceState
+    updated_at: str
+
+
+class WorkspacePayload(ApiModel):
+    reviews: list[ReviewListItem]
+    selected_review_id: str | None
+
+
+class StartReviewResponse(ApiModel):
+    review_id: str
+    created: bool
+    dashboard: DashboardPayload
+
+
+class ReviewActionRequest(ApiModel):
+    action: Literal["sync_repository", "open_preview", "request_changes"]
 
 
 class ActionResponse(ApiModel):
     action_id: str
-    state: Literal["accepted"]
+    state: Literal["accepted", "blocked"]
     message: LocalizedText
-
+    target_url: str | None = None

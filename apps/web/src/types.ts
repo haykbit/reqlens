@@ -8,12 +8,21 @@ export interface LocalizedText {
 export type EvidenceState = "verified" | "needs_evidence" | "in_review" | "pending" | "failed";
 
 export interface ProjectContext {
+  project_id: string;
+  review_id: string;
+  repository_path: string;
   repository: string;
   branch: string;
   worktree: string;
   base_revision: string;
   head_revision: string;
-  pull_request: number;
+  pull_request: number | null;
+  ticket_reference: string;
+  ticket_source: string;
+  ticket_url: string | null;
+  preview_url: string | null;
+  dirty: boolean;
+  updated_at: string;
 }
 
 export interface ProductNode {
@@ -42,13 +51,14 @@ export interface ChangeSummary {
   requirements: string[];
   summary: LocalizedText;
   rationale: LocalizedText;
+  diff: string;
 }
 
 export interface TestResult {
   id: string;
   name: LocalizedText;
   command: string;
-  kind: "unit" | "integration" | "api" | "database" | "e2e";
+  kind: "unit" | "integration" | "api" | "database" | "e2e" | "lint" | "typecheck";
   state: EvidenceState;
   duration_ms: number | null;
   assertions: number;
@@ -112,10 +122,30 @@ export interface DashboardPayload {
   summary: DashboardSummary;
 }
 
+export interface ReviewListItem {
+  id: string;
+  project_id: string;
+  repository: string;
+  repository_path: string;
+  ticket_reference: string;
+  ticket_source: string;
+  title: string;
+  branch: string;
+  status: EvidenceState;
+  updated_at: string;
+}
+
+export interface WorkspacePayload {
+  reviews: ReviewListItem[];
+  selected_review_id: string | null;
+}
+
 export interface ActionResponse {
   action_id: string;
-  state: "accepted";
+  state: "accepted" | "blocked";
   message: LocalizedText;
+  target_url: string | null;
 }
 
 export type ViewId = "overview" | "changes" | "tests" | "replay" | "activity";
+export type ReviewAction = "sync_repository" | "open_preview" | "request_changes";
