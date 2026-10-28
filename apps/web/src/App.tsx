@@ -144,8 +144,10 @@ export function App() {
       />
 
       <div className="min-w-0 flex-1">
-        <Topbar data={data} locale={locale} reviews={workspace.reviews} activeReviewId={activeReviewId ?? data.project.review_id} onReviewChange={(reviewId) => void selectReview(reviewId)} onLocaleChange={setLocale} />
-        <RevisionStrip data={data} locale={locale} />
+        <div className="sticky top-0 z-40">
+          <Topbar data={data} locale={locale} reviews={workspace.reviews} activeReviewId={activeReviewId ?? data.project.review_id} onReviewChange={(reviewId) => void selectReview(reviewId)} onLocaleChange={setLocale} />
+          <RevisionStrip data={data} locale={locale} />
+        </div>
 
         <main className="mx-auto w-full max-w-[1480px] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
           <div className="animate-in fade-in duration-300">

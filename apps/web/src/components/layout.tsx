@@ -30,7 +30,7 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
   data: DashboardPayload;
 }) {
   return (
-    <aside className="hidden h-screen w-[228px] shrink-0 flex-col border-r border-neutral-200/80 bg-[#f7f7f5] md:flex">
+    <aside className="sticky top-0 hidden h-screen w-[228px] shrink-0 self-start flex-col border-r border-neutral-200/80 bg-[#f7f7f5] md:flex">
       <div className="flex h-13 items-center gap-2.5 px-3.5">
         <div className="grid size-6 place-items-center rounded-md bg-neutral-950 text-[12px] font-semibold text-white">R</div>
         <span className="text-[13px] font-semibold tracking-[-0.02em] text-neutral-950">ReqLens</span>

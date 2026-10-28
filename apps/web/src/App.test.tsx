@@ -90,6 +90,8 @@ describe("review workspace", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Add a health endpoint" });
 
+    expect(screen.getByRole("banner").parentElement?.className).toContain("sticky");
+    expect(screen.getByRole("complementary").className).toContain("sticky");
     expect((screen.getByRole("button", { name: "Open preview" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "Accept review" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Request changes" }));
