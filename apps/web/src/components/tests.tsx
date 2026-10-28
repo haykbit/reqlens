@@ -1,27 +1,22 @@
-import { Check, CircleAlert, Database, FlaskConical, RefreshCw, Terminal } from "lucide-react";
+import { Check, CircleAlert, Database, FlaskConical, Terminal } from "lucide-react";
 
 import { SectionHeading, StatusBadge, Surface, Tag } from "@/components/common";
-import { Button } from "@/components/ui/button";
 import { localize, ui } from "@/lib/i18n";
 import { formatDuration } from "@/lib/utils";
 import type { DashboardPayload, Locale } from "@/types";
 
-export function TestsView({ data, locale, onRun }: { data: DashboardPayload; locale: Locale; onRun: () => void }) {
+export function TestsView({ data, locale }: { data: DashboardPayload; locale: Locale }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <Surface className="overflow-hidden">
         <div className="border-b border-neutral-100 px-4 py-3.5 sm:px-5">
-          <SectionHeading
-            title={ui("testEvidence", locale)}
-            description={ui("testEvidenceHint", locale)}
-            action={<Button size="sm" onClick={onRun}><RefreshCw className="size-3" />{ui("refreshEvidence", locale)}</Button>}
-          />
+          <SectionHeading title={ui("testEvidence", locale)} description={ui("testEvidenceHint", locale)} />
         </div>
         <div className="divide-y divide-neutral-100">
           {data.tests.map((test) => (
             <div key={test.id} className="px-4 py-4 sm:px-5">
               <div className="flex flex-wrap items-start gap-3">
-                <span className={`grid size-7 shrink-0 place-items-center rounded-md border ${test.state === "verified" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+                <span className={`grid size-7 shrink-0 place-items-center rounded-md border ${test.state === "verified" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : test.state === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
                   {test.kind === "database" ? <Database className="size-3.5" /> : <FlaskConical className="size-3.5" />}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -60,7 +55,7 @@ export function TestsView({ data, locale, onRun }: { data: DashboardPayload; loc
             <div className="h-full rounded-full bg-neutral-900 transition-[width]" style={{ width: `${data.summary.checks_total === 0 ? 0 : (data.summary.checks_passed / data.summary.checks_total) * 100}%` }} />
           </div>
           <div className="mt-4 space-y-2.5">
-            {data.tests.map((test) => <GateRow key={test.id} icon={test.state === "verified" ? Check : CircleAlert} text={localize(test.name, locale)} state={test.state === "verified" ? "pass" : "wait"} />)}
+            {data.tests.map((test) => <GateRow key={test.id} icon={test.state === "verified" ? Check : CircleAlert} text={localize(test.name, locale)} state={test.state === "verified" ? "pass" : test.state === "failed" ? "fail" : "wait"} />)}
             {data.tests.length === 0 ? <p className="text-[10px] leading-4 text-neutral-500">{ui("waitingForAgent", locale)}</p> : null}
           </div>
         </Surface>
@@ -69,12 +64,14 @@ export function TestsView({ data, locale, onRun }: { data: DashboardPayload; loc
   );
 }
 
-function GateRow({ icon: Icon, text, state }: { icon: typeof Check; text: string; state: "pass" | "wait" }) {
+function GateRow({ icon: Icon, text, state }: { icon: typeof Check; text: string; state: "pass" | "fail" | "wait" }) {
+  const tone = state === "pass" ? "bg-emerald-50 text-emerald-700" : state === "fail" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700";
+  const dot = state === "pass" ? "bg-emerald-500" : state === "fail" ? "bg-red-500" : "bg-amber-400";
   return (
     <div className="flex items-center gap-2 text-[10px]">
-      <span className={`grid size-4 place-items-center rounded-full ${state === "pass" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}><Icon className="size-2.5" /></span>
-      <span className={state === "pass" ? "text-neutral-600" : "text-amber-800"}>{text}</span>
-      <span className={`ml-auto size-1.5 rounded-full ${state === "pass" ? "bg-emerald-500" : "bg-amber-400"}`} />
+      <span className={`grid size-4 place-items-center rounded-full ${tone}`}><Icon className="size-2.5" /></span>
+      <span className={state === "pass" ? "text-neutral-600" : state === "fail" ? "text-red-800" : "text-amber-800"}>{text}</span>
+      <span className={`ml-auto size-1.5 rounded-full ${dot}`} />
     </div>
   );
 }

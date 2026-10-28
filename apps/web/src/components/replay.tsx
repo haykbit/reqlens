@@ -35,7 +35,7 @@ export function ReplayView({ data, locale }: { data: DashboardPayload; locale: L
         <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
           <Route className="size-3.5 text-white/50" />
           <span className="min-w-0 flex-1 truncate font-mono text-[9px] text-white/50">{data.project.preview_url ?? `${data.project.repository} · ${data.project.head_revision}`}</span>
-          {data.project.preview_url ? <a href={data.project.preview_url} target="_blank" rel="noreferrer" className="text-white/50 hover:text-white"><ExternalLink className="size-3" /></a> : null}
+          {data.project.preview_url ? <a href={data.project.preview_url} target="_blank" rel="noreferrer" aria-label={ui("openReplayPreview", locale)} className="text-white/50 hover:text-white"><ExternalLink className="size-3" /></a> : null}
         </div>
 
         <div className="relative min-h-[430px] overflow-hidden p-8 sm:p-12">
@@ -51,7 +51,7 @@ export function ReplayView({ data, locale }: { data: DashboardPayload; locale: L
           </div>
         </div>
 
-        <div className="border-t border-white/10 px-4 py-3"><div className="flex items-center gap-3"><button onClick={() => { if (activeStep === data.replay_steps.length - 1) setActiveStep(0); setPlaying((value) => !value); }} className="grid size-7 place-items-center rounded-full bg-white text-neutral-950 transition-transform active:scale-95">{playing ? <Pause className="size-3" /> : <Play className="ml-0.5 size-3" />}</button><div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-white transition-[width] duration-500" style={{ width: `${((activeStep + 1) / data.replay_steps.length) * 100}%` }} /></div><span className="font-mono text-[9px] text-white/40">{activeStep + 1}/{data.replay_steps.length}</span></div></div>
+        <div className="border-t border-white/10 px-4 py-3"><div className="flex items-center gap-3"><button aria-label={ui(playing ? "pauseReplay" : "playReplay", locale)} onClick={() => { if (activeStep === data.replay_steps.length - 1) setActiveStep(0); setPlaying((value) => !value); }} className="grid size-7 place-items-center rounded-full bg-white text-neutral-950 transition-transform active:scale-95">{playing ? <Pause className="size-3" /> : <Play className="ml-0.5 size-3" />}</button><div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-white transition-[width] duration-500" style={{ width: `${((activeStep + 1) / data.replay_steps.length) * 100}%` }} /></div><span className="font-mono text-[9px] text-white/40">{activeStep + 1}/{data.replay_steps.length}</span></div></div>
       </Surface>
 
       <Surface className="overflow-hidden">

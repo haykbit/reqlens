@@ -8,13 +8,14 @@ This protocol separates the implementation loop from the review loop so that a b
 
 ## Product surface: ReqLens Studio
 
-The browser dashboard is provisionally called **ReqLens Studio**. It behaves like other repository-local development services:
+The browser workspace is called **ReqLens Studio**. It behaves like a local development service:
 
-1. The developer starts ReqLens from the application repository.
+1. The developer starts the installed ReqLens service.
 2. A local service binds to the loopback interface.
 3. It selects the configured preferred port or another available port.
 4. The CLI prints and optionally opens the Studio URL.
-5. Studio remains connected to the repository, Git worktrees, evidence store, test runner, and agent bridge.
+5. A coding agent registers the target repository and ticket through the local interface.
+6. Studio remains connected to the repository, Git state, evidence store, and agent bridge.
 
 The name distinguishes the visual application from the ReqLens CLI and agent integration without creating a separate product.
 

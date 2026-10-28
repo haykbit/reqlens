@@ -1,12 +1,16 @@
 # Initial domain model
 
-This document proposes a deliberately small vocabulary for the first ReqLens prototype. It is a product model, not yet a persistence schema.
+This document defines the product vocabulary. Some entities are implemented in the current vertical slice and others describe the intended model; it is not a persistence schema.
 
 ## Core entities
 
 ### Project
 
-The application repository in which ReqLens is installed. It owns the product model, configuration, work contexts, and local evidence store.
+An application repository registered with ReqLens. ReqLens is installed separately and can track multiple projects without copying its source or dependencies into them.
+
+### Review
+
+The revision-bound workspace for one ticket in one project. It records the base revision, normalized ticket, reported evidence, current Git snapshot, activity, and human decision.
 
 ### Feature
 
@@ -29,11 +33,11 @@ An observable condition used to decide whether a requirement has been satisfied.
 
 ### Work item
 
-A bounded implementation task derived from one or more acceptance criteria. It can later reference an external GitHub or Linear issue, but does not require an issue tracker in the MVP.
+A bounded implementation task derived from one or more acceptance criteria. It can reference Linear, Jira, Asana, GitHub, or a request supplied directly in conversation.
 
 ### Work context
 
-The explicit connection between a work item and a Git worktree, branch, base revision, and active implementation session. It defines the boundary from which changes and evidence are calculated.
+The explicit connection between a work item and a Git repository, worktree, branch, base revision, and active implementation session. It defines the point from which changes and evidence are calculated.
 
 ### Agent run
 

@@ -10,8 +10,7 @@ import {
 
 import { ui, viewLabel } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { DashboardPayload, Locale, ViewId } from "@/types";
-import type { ReviewListItem } from "@/types";
+import type { DashboardPayload, Locale, ReviewListItem, ViewId } from "@/types";
 
 const navigation: Array<{ id: ViewId; icon: typeof Boxes }> = [
   { id: "overview", icon: Boxes },
@@ -35,7 +34,6 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
       <div className="flex h-13 items-center gap-2.5 px-3.5">
         <div className="grid size-6 place-items-center rounded-md bg-neutral-950 text-[12px] font-semibold text-white">R</div>
         <span className="text-[13px] font-semibold tracking-[-0.02em] text-neutral-950">ReqLens</span>
-        <span className="ml-auto rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[9px] font-medium text-neutral-500">v0.2.0</span>
       </div>
 
       <div className="px-2.5 pt-2">
@@ -45,7 +43,7 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
             value={activeReviewId}
             onChange={(event) => onReviewChange(event.target.value)}
             className="h-full min-w-0 flex-1 appearance-none bg-transparent pr-6 pl-2 text-[11px] text-neutral-700 outline-none"
-            aria-label="Review"
+            aria-label={ui("selectReview", locale)}
           >
             {reviews.map((review) => <option key={review.id} value={review.id}>{review.repository} · {review.ticket_reference}</option>)}
           </select>
@@ -79,7 +77,6 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
           <div className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]" />
             <span className="font-medium text-neutral-700">{ui("localOnly", locale)}</span>
-            <span className="ml-auto font-mono text-[10px]">:7331</span>
           </div>
           <p className="mt-1.5 pl-3.5 text-[10px] leading-4 text-neutral-400">{ui("evidenceStaysLocal", locale)}</p>
         </div>
@@ -88,11 +85,21 @@ export function Sidebar({ activeView, locale, onViewChange, reviews, activeRevie
   );
 }
 
-export function Topbar({ data, locale, onLocaleChange }: { data: DashboardPayload; locale: Locale; onLocaleChange: (locale: Locale) => void }) {
+export function Topbar({ data, locale, reviews, activeReviewId, onReviewChange, onLocaleChange }: {
+  data: DashboardPayload;
+  locale: Locale;
+  reviews: ReviewListItem[];
+  activeReviewId: string;
+  onReviewChange: (reviewId: string) => void;
+  onLocaleChange: (locale: Locale) => void;
+}) {
   return (
     <header className="flex h-13 items-center border-b border-neutral-200/80 bg-white px-4 sm:px-5">
       <div className="mr-3 grid size-6 place-items-center rounded-md bg-neutral-950 text-[11px] font-semibold text-white md:hidden">R</div>
-      <div className="flex min-w-0 items-center gap-2 text-[11px] text-neutral-500">
+      <select value={activeReviewId} onChange={(event) => onReviewChange(event.target.value)} aria-label={ui("selectReview", locale)} className="min-w-0 max-w-[190px] bg-transparent text-[11px] font-medium text-neutral-800 outline-none md:hidden">
+        {reviews.map((review) => <option key={review.id} value={review.id}>{review.ticket_reference} · {review.title}</option>)}
+      </select>
+      <div className="hidden min-w-0 items-center gap-2 text-[11px] text-neutral-500 md:flex">
         <span className="hidden sm:inline">{data.project.repository}</span>
         <span className="hidden text-neutral-300 sm:inline">/</span>
         {data.project.ticket_url ? <a href={data.project.ticket_url} target="_blank" rel="noreferrer" className="truncate font-medium text-neutral-800 hover:underline">{data.project.ticket_reference}</a> : <span className="truncate font-medium text-neutral-800">{data.project.ticket_reference}</span>}
@@ -101,7 +108,7 @@ export function Topbar({ data, locale, onLocaleChange }: { data: DashboardPayloa
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
-        <div className="ml-1 flex rounded-md border border-neutral-200 bg-neutral-50 p-0.5" aria-label="Language">
+        <div className="ml-1 flex rounded-md border border-neutral-200 bg-neutral-50 p-0.5" role="group" aria-label={ui("language", locale)}>
           {(["en", "es"] as const).map((language) => (
             <button
               key={language}

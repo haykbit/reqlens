@@ -17,10 +17,10 @@ export function getReview(reviewId: string) {
   return request<DashboardPayload>(`/api/reviews/${reviewId}`);
 }
 
-export function createAction(reviewId: string, action: ReviewAction) {
+export function createAction(reviewId: string, action: ReviewAction, note?: string) {
   return request<ActionResponse>(`/api/reviews/${reviewId}/actions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action }),
+    body: JSON.stringify({ action, note }),
   });
 }

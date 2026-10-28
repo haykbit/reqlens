@@ -2,194 +2,141 @@
 
 **See how requirements become code.**
 
-ReqLens is a local-first, evidence-based acceptance layer between product and engineering. It connects product requirements and tickets to human or agent-authored implementation changes, tests, captured decisions, and review evidence so teams can determine whether the requested product outcome was actually delivered.
+ReqLens is a local review workspace that connects a product ticket to the repository changes, tests, findings, and observed product evidence used to implement it.
 
-> ReqLens `0.2.0` is a functional local vertical slice: a coding agent sends normalized product evidence, ReqLens reads the real Git repository, and the bilingual Studio persists and displays the resulting review.
+The central question is not “Does this diff look elegant?” It is:
 
-## Run locally
+> Did this ticket deliver the product requirement it came from, and what evidence supports that conclusion?
 
-ReqLens uses React 19, TypeScript, Tailwind CSS, and shadcn-style primitives in the frontend, with a fully typed FastAPI/Pydantic API behind it.
+Version `0.3.0` provides one working vertical slice: a coding agent normalizes the ticket and reports semantic evidence, ReqLens reads Git directly, and ReqLens Studio persists and displays the complete review locally.
 
-Prerequisites: Node.js 22+ and [uv](https://docs.astral.sh/uv/).
+## Quick start
+
+Prerequisites: Git, Node.js 22+, npm, and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-npm install
+git clone https://github.com/haykbit/reqlens.git
+cd reqlens
+./scripts/install.sh
+reqlens doctor
+reqlens serve --open
+```
+
+`reqlens serve` binds to `127.0.0.1`. It prefers port `7331` and selects the next available port when necessary. The command prints the exact Studio URL and data location.
+
+See [installation and troubleshooting](docs/installation.md) for upgrades, environment variables, and development setup.
+
+## Start a real review
+
+The recommended workflow is to tell Codex:
+
+```text
+Use ReqLens for this ticket.
+```
+
+The included [ReqLens skill](skills/reqlens/SKILL.md) reads the ticket through the agent's existing Linear, Jira, Asana, or GitHub connection. ReqLens does not store provider credentials.
+
+The agent then starts an idempotent review:
+
+```bash
+reqlens start --project /absolute/path/to/application --ticket ticket.json
+```
+
+After implementation and verification it reports evidence:
+
+```bash
+reqlens sync REVIEW_ID --evidence evidence.json
+```
+
+The exact ticket and evidence schemas are versioned in [the agent contract](skills/reqlens/references/contracts.md).
+
+## What is real in the current version
+
+- Git repository root, remote, branch, base revision, head revision, working-tree state, changed files, line counts, and diffs come directly from Git.
+- Tickets, acceptance evidence, change annotations, test results, findings, replay steps, review decisions, and activity are persisted in local SQLite.
+- A review can only become evidence-verified when it has acceptance criteria, all criteria are verified, at least one deterministic check is present, all checks pass, and no required finding remains.
+- A reviewer can request changes with a recorded reason.
+- Acceptance is allowed only for complete evidence on a clean working tree and is attached to the exact accepted Git revision.
+- A later commit or uncommitted change marks that decision as outdated.
+- Studio and the agent endpoints run from one local process in installed mode.
+
+ReqLens never treats a model explanation as Git evidence or a passing test as absolute proof of product correctness.
+
+## Product flow
+
+```text
+Linear / Jira / Asana / GitHub / conversation
+                         ↓
+                    coding agent
+                         ↓ normalized ticket and evidence
+                    ReqLens service
+                    ↙             ↘
+          SQLite review             Git inspection
+                    ↘             ↙
+                    ReqLens Studio
+                         ↓
+              human review decision
+```
+
+Studio provides five focused views:
+
+- **Overview** connects product intent, acceptance criteria, findings, and the human decision.
+- **Changes** shows the real diff with requirement mappings and reported rationale.
+- **Tests** keeps deterministic checks separate from agent judgment.
+- **Replay** shows an observed product journey when one has been reported.
+- **Activity** records product, agent, Git, test, and review events.
+
+## CLI
+
+| Command | Purpose |
+| --- | --- |
+| `reqlens doctor` | Validate the local installation and locate Studio and data. |
+| `reqlens serve --open` | Start the local product and optionally open Studio. |
+| `reqlens health` | Check the running service. |
+| `reqlens list` | List tracked reviews. |
+| `reqlens start` | Register or refresh a ticket for a Git repository. |
+| `reqlens sync` | Read Git again and optionally record new agent evidence. |
+| `reqlens show` | Return the complete review as JSON. |
+
+Set `REQLENS_API_URL` when connecting the CLI to a non-default local URL, `REQLENS_DATA_DIR` to choose the data directory, or `REQLENS_WEB_DIR` to use a different Studio build.
+
+## Local data and privacy
+
+ReqLens binds to loopback by default and keeps its data on the machine. New installations use the operating system's application-data directory. Existing development installations that already contain `.reqlens/data/reqlens.db` continue using that database.
+
+The local database and runtime state are ignored by Git. Source code and evidence are not uploaded by ReqLens. External provider access remains in the user's coding agent.
+
+## Development
+
+```bash
+npm ci
 uv sync --directory apps/api
 npm run dev
 ```
 
-Open [http://127.0.0.1:7331](http://127.0.0.1:7331). The web app proxies its typed API calls to FastAPI on port `7332`.
+Development mode runs Vite at `127.0.0.1:7331` and FastAPI at `127.0.0.1:7332`. The CLI automatically tries both addresses.
 
-Install the agent CLI once from this checkout:
-
-```bash
-uv tool install --editable apps/api
-reqlens health
-```
-
-The current vertical slice uses no fixture review data. It lets you:
-
-- start an idempotent review for a real Git repository and ticket;
-- persist ticket and evidence records locally in SQLite;
-- read the actual repository root, branch, revision, dirty state, changed files, and diffs from Git;
-- inspect acceptance criteria and their linked implementation evidence;
-- review changed files with product rationale and requirement coverage;
-- separate agent-reported deterministic test results from semantic findings;
-- replay an observed product journey when the agent reports one;
-- switch every primary product surface between English and Spanish.
-
-ReqLens deliberately does not store credentials for Linear, Jira, Asana, or GitHub. The coding agent uses its existing provider connection, converts the ticket to one strict contract, and reports evidence through the local CLI:
-
-```text
-Linear / Jira / Asana / GitHub
-              ↓
-         coding agent
-              ↓ normalized ticket + evidence
-          ReqLens API
-          ↙         ↘
-    SQLite review    real Git inspection
-          ↘         ↙
-         local Studio
-```
-
-The versioned [ReqLens agent skill](skills/reqlens/SKILL.md) contains the workflow and exact [JSON contracts](skills/reqlens/references/contracts.md).
-
-### Start a review manually
-
-Create a ticket payload:
-
-```json
-{
-  "source": "manual",
-  "reference": "REQ-1",
-  "title": "Expose a health endpoint",
-  "acceptance_criteria": [
-    {
-      "id": "AC-1",
-      "title": "Return an OK response",
-      "detail": "GET /health returns 200 and an OK payload."
-    }
-  ]
-}
-```
-
-Then start tracking the target repository:
+Run the complete verification suite with:
 
 ```bash
-reqlens start --project /absolute/path/to/project --ticket ticket.json
+npm run typecheck
+npm test
+npm run build
 ```
 
-The command returns a `review_id`. After implementation, report evidence with `reqlens sync REVIEW_ID --evidence evidence.json`. ReqLens synchronizes Git on every evidence update; the agent never supplies branch names, revisions, or diff content.
+The API suite creates real temporary Git repositories. The CLI integration test starts a real HTTP server, registers a separate repository, reports evidence, and verifies the resulting diff through the public CLI interface.
 
-## The problem
+## Scope and next steps
 
-AI coding agents can move from a ticket to working code in minutes. Reviewing the resulting diff still leaves important questions unanswered:
+ReqLens does not yet execute arbitrary project test commands, record browser video automatically, create isolated pull-request previews, or publish evidence back to an external provider. Those capabilities are designed but remain outside this vertical slice.
 
-- Which requirement does this change satisfy?
-- Where is each acceptance criterion implemented?
-- What evidence shows that the implementation works?
-- Why did the agent choose this approach?
-- Did the implementation drift beyond the requested scope?
-- Which conclusions come from deterministic checks, and which come from another model?
+Product and architecture references:
 
-Code review tools inspect code. Agent observability tools inspect execution. ReqLens focuses on the missing connection between **product intent, implementation, and evidence**.
+- [Product definition](docs/product.md)
+- [Feature map](docs/features.md)
+- [Domain model](docs/domain-model.md)
+- [Build and review protocol](docs/review-protocol.md)
+- [Visual acceptance](docs/visual-acceptance.md)
+- [PR previews](docs/pr-preview.md)
 
-The primary ReqLens question is not “Is this code elegant?” It is:
-
-> Did this ticket correctly implement the product requirement it came from, and what evidence supports that conclusion?
-
-Technical analysis is part of the answer when correctness, risk, maintainability, or architecture affects acceptance. It is not the product's final purpose.
-
-## The core idea
-
-ReqLens builds an evidence trail across the delivery workflow:
-
-```text
-PRD
- └─ Requirement
-     └─ Acceptance criterion
-         └─ Work item
-             └─ Agent run
-                 ├─ Decision
-                 ├─ Code change
-                 ├─ Test
-                 └─ Verification result
-```
-
-This should make it possible to start from either side:
-
-- Select a requirement and inspect the code, tests, and evidence that support it.
-- Select a function or changed line and understand which requirement led to it.
-
-ReqLens also evaluates the chain before implementation begins. If a ticket is ambiguous, contradicts its source requirement, lacks acceptance criteria, or cannot be verified, that gap should be visible before an agent or developer writes code.
-
-## MVP workflow
-
-The first useful version will cover one complete workflow:
-
-1. The coding agent reads a ticket from its configured provider.
-2. The agent starts a ReqLens review before implementation.
-3. ReqLens records the base revision and inspects Git directly.
-4. The agent implements the ticket and runs the relevant checks.
-5. The agent links criteria, changed paths, test results, findings, and observed replay steps.
-6. ReqLens shows the complete evidence snapshot in the local dashboard.
-
-The current Studio provides five views:
-
-- **Overview** — the acceptance chain, criteria, findings, and evidence status.
-- **Changes** — an evidence-aware diff showing why each change exists.
-- **Tests** — deterministic results, commands, assertions, and blocked profiles.
-- **Replay** — a recorded product journey tied to the reviewed revision.
-- **Activity** — product, agent, Git, test, and review events in one timeline.
-
-See [the product feature map](docs/features.md) for the planned capabilities, [the build and review protocol](docs/review-protocol.md) for the builder/reviewer workflow, [pull-request previews](docs/pr-preview.md) for isolated local application environments, [visual acceptance runs](docs/visual-acceptance.md) for recorded product evidence, [the product definition](docs/product.md) for the initial scope, and [the domain model](docs/domain-model.md) for the proposed concepts.
-
-## Product principles
-
-### Evidence over assertions
-
-ReqLens should not report that a requirement is complete merely because a model says so. Every conclusion must point to inspectable evidence.
-
-### Capture provenance during execution
-
-Rationale reconstructed after implementation can be plausible but false. ReqLens should capture context, decisions, and actions while the work is happening.
-
-### Deterministic checks first
-
-Tests, type checking, linting, and other reproducible signals should remain clearly separated from semantic model-based evaluation.
-
-### Local-first by default
-
-Source code, prompts, and execution traces can be sensitive. The first version should store and process them locally unless the user explicitly enables an external provider.
-
-### Agent-agnostic architecture
-
-ReqLens is not another coding agent. It should integrate with existing agents through adapters and a small common event model.
-
-### Humans remain accountable
-
-Automated evaluation provides evidence and recommendations. A human decides whether the requirement is accepted.
-
-## What ReqLens is not
-
-- A replacement for GitHub, Linear, or another issue tracker.
-- A new general-purpose coding agent.
-- A substitute for CI, automated tests, or human review.
-- A promise that model-generated explanations are ground truth.
-
-## Example output
-
-| Requirement | Implementation | Verification | Status |
-| --- | --- | --- | --- |
-| `AUTH-01` Users can sign in with email | `src/auth/login.ts` | 4 passing tests | Covered |
-| `AUTH-02` Lock after five failed attempts | `src/auth/rate-limit.ts` | No boundary test | Partial |
-| `AUTH-03` Record successful and failed attempts | No linked change | No evidence | Missing |
-
-## Current status
-
-Version `0.2.0` replaces fixture evidence with real repository ingestion, Git diff collection, local persistence, a strict agent protocol, and a working CLI. The next milestone is automatic browser capture and video evidence tied to a reviewed revision.
-
-## Contributing
-
-The project is still defining its first vertical slice. Ideas, use cases, and examples of difficult AI-generated pull requests are welcome through GitHub Issues.
-
+ReqLens is not a replacement for an issue tracker, CI, GitHub review, or human accountability. It is the evidence layer connecting them.

@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
 from hashlib import sha256
-from typing import Literal, TypeVar, cast
+from typing import Literal, TypeVar
 from uuid import uuid4
 
 from .git import GitFileChange, GitRepositoryError, GitSnapshot, inspect_repository, resolve_revision
@@ -21,6 +21,7 @@ from .models import (
     ProductNode,
     ProjectContext,
     ReplayStep,
+    ReviewDecision,
     ReviewListItem,
     ReviewRecord,
     StartReviewRequest,
@@ -69,19 +70,23 @@ class ReviewService:
         existing = self.store.find(project_path, request.ticket.reference)
         timestamp = now_iso()
         if existing:
-            existing.ticket = request.ticket
-            existing.updated_at = timestamp
-            existing.events.append(
-                self._event(
-                    AgentEventInput(
-                        actor="Codex",
-                        title="Ticket context refreshed",
-                        detail=f"{request.ticket.source} · {request.ticket.reference}",
-                        kind="product",
+            if existing.ticket != request.ticket:
+                existing.ticket = request.ticket
+                existing.decision = ReviewDecision.IN_REVIEW
+                existing.decision_note = None
+                existing.accepted_revision = None
+                existing.updated_at = timestamp
+                existing.events.append(
+                    self._event(
+                        AgentEventInput(
+                            actor="Codex",
+                            title="Ticket context refreshed",
+                            detail=f"{request.ticket.source} · {request.ticket.reference}",
+                            kind="product",
+                        )
                     )
                 )
-            )
-            self.store.save(existing)
+                self.store.save(existing)
             return StartReviewResponse(
                 review_id=existing.id,
                 created=False,
@@ -119,6 +124,14 @@ class ReviewService:
 
     def sync(self, review_id: str, request: SyncReviewRequest) -> DashboardPayload:
         record = self._record(review_id)
+        evidence_changed = any(
+            value is not None
+            for value in (request.criteria, request.changes, request.tests, request.findings, request.replay_steps)
+        )
+        if evidence_changed:
+            record.decision = ReviewDecision.IN_REVIEW
+            record.decision_note = None
+            record.accepted_revision = None
         if request.criteria is not None:
             record.criteria = merge_by(record.criteria, request.criteria, lambda item: item.criterion_id)
         if request.changes is not None:
@@ -172,6 +185,7 @@ class ReviewService:
                     title=record.ticket.title,
                     branch=dashboard.project.branch,
                     status=dashboard.status,
+                    decision=dashboard.project.decision,
                     updated_at=record.updated_at,
                 )
             )
@@ -180,37 +194,48 @@ class ReviewService:
             selected_review_id=items[0].id if items else None,
         )
 
-    def action(self, review_id: str, action: str) -> ActionResponse:
+    def action(
+        self,
+        review_id: str,
+        action: Literal["sync_repository", "open_preview", "accept_review", "request_changes"],
+        note: str | None = None,
+    ) -> ActionResponse:
         record = self._record(review_id)
-        if action == "open_preview":
-            if not record.preview_url:
-                return ActionResponse(
-                    action_id=str(uuid4()),
-                    state="blocked",
-                    message=translated(
-                        "No preview URL has been reported by the agent.",
-                        "El agente todavía no ha reportado una URL de preview.",
-                    ),
+        if action == "accept_review":
+            snapshot = inspect_repository(record.project_path, record.base_revision)
+            dashboard = self._dashboard(record, snapshot)
+            if snapshot.dirty:
+                return self._blocked(
+                    "Commit or discard working-tree changes before accepting this review.",
+                    "Haz commit o descarta los cambios del working tree antes de aceptar la revisión.",
                 )
+            if dashboard.status != EvidenceState.VERIFIED:
+                return self._blocked(
+                    "The evidence is not complete enough to accept this review.",
+                    "Las evidencias todavía no están completas para aceptar la revisión.",
+                )
+            record.decision = ReviewDecision.ACCEPTED
+            record.decision_note = note
+            record.accepted_revision = snapshot.head_revision
+            self._record_decision(record, "Review accepted", note or f"Accepted at {snapshot.head_revision}")
             return ActionResponse(
                 action_id=str(uuid4()),
                 state="accepted",
-                target_url=record.preview_url,
-                message=translated("Preview is ready.", "La preview está lista."),
+                message=translated(
+                    "Review accepted at the current Git revision.",
+                    "Revisión aceptada en la revisión Git actual.",
+                ),
             )
         if action == "request_changes":
-            record.events.append(
-                self._event(
-                    AgentEventInput(
-                        actor="Reviewer",
-                        title="Changes requested",
-                        detail="The current evidence snapshot requires changes.",
-                        kind="review",
-                    )
+            if not note or not note.strip():
+                return self._blocked(
+                    "Describe what needs to change before sending the request.",
+                    "Describe qué debe cambiar antes de enviar la solicitud.",
                 )
-            )
-            record.updated_at = now_iso()
-            self.store.save(record)
+            record.decision = ReviewDecision.CHANGES_REQUESTED
+            record.decision_note = note.strip()
+            record.accepted_revision = None
+            self._record_decision(record, "Changes requested", note.strip())
             return ActionResponse(
                 action_id=str(uuid4()),
                 state="accepted",
@@ -219,14 +244,48 @@ class ReviewService:
                     "Solicitud de cambios registrada en el timeline.",
                 ),
             )
+        if action == "open_preview":
+            if not record.preview_url:
+                return self._blocked(
+                    "No preview URL has been reported by the agent.",
+                    "El agente todavía no ha reportado una URL de preview.",
+                )
+            return ActionResponse(
+                action_id=str(uuid4()),
+                state="accepted",
+                target_url=record.preview_url,
+                message=translated("Preview is ready.", "La preview está lista."),
+            )
         self.sync(review_id, SyncReviewRequest())
         return ActionResponse(
             action_id=str(uuid4()),
             state="accepted",
             message=translated(
-                "Repository metadata and changes synchronized.",
-                "Metadatos y cambios del repositorio sincronizados.",
+                "Git metadata and changes synchronized.",
+                "Metadatos y cambios Git sincronizados.",
             ),
+        )
+
+    def _record_decision(self, record: ReviewRecord, title: str, detail: str) -> None:
+        record.events.append(
+            self._event(
+                AgentEventInput(
+                    actor="Reviewer",
+                    title=title,
+                    detail=detail,
+                    kind="review",
+                )
+            )
+        )
+        record.updated_at = now_iso()
+        self.store.save(record)
+
+    @staticmethod
+    def _blocked(en: str, es: str) -> ActionResponse:
+        return ActionResponse(
+            action_id=str(uuid4()),
+            state="blocked",
+            message=translated(en, es),
         )
 
     def _dashboard(self, record: ReviewRecord, snapshot: GitSnapshot) -> DashboardPayload:
@@ -277,7 +336,7 @@ class ReviewService:
             )
             for item in record.replay_steps
         ]
-        status = self._status(criteria)
+        status = self._status(criteria, tests, findings)
         verified_tests = sum(test.state == EvidenceState.VERIFIED for test in tests)
         return DashboardPayload(
             project=ProjectContext(
@@ -294,6 +353,9 @@ class ReviewService:
                 ticket_source=record.ticket.source,
                 ticket_url=record.ticket.url,
                 preview_url=record.preview_url,
+                decision=self._decision(record, snapshot),
+                decision_note=record.decision_note,
+                accepted_revision=record.accepted_revision,
                 dirty=snapshot.dirty,
                 updated_at=record.updated_at,
             ),
@@ -334,14 +396,14 @@ class ReviewService:
                 eyebrow=translated("Feature", "Feature"),
                 title=text(feature),
                 reference=ticket.feature_reference or "—",
-                state=EvidenceState.IN_REVIEW,
+                state=status,
             ),
             ProductNode(
                 kind="requirement",
                 eyebrow=translated("Product requirement", "Requerimiento de producto"),
                 title=text(requirement),
                 reference=ticket.requirement_id or "—",
-                state=EvidenceState.IN_REVIEW,
+                state=status,
             ),
             ProductNode(
                 kind="ticket",
@@ -361,21 +423,11 @@ class ReviewService:
 
     @staticmethod
     def _change(change: GitFileChange, annotation: ChangeAnnotationInput | None) -> ChangeSummary:
-        category_map = {
-            "implementation": "implementation",
-            "test": "test",
-            "migration": "migration",
-            "configuration": "configuration",
-        }
-        category = cast(
-            Literal["implementation", "test", "migration", "configuration"],
-            category_map.get(change.category, "implementation"),
-        )
         return ChangeSummary(
             path=change.path,
             additions=change.additions,
             deletions=change.deletions,
-            category=category,
+            category=change.category,
             requirements=annotation.requirement_ids if annotation else [],
             summary=(
                 text(annotation.summary)
@@ -434,16 +486,36 @@ class ReviewService:
         return record
 
     @staticmethod
-    def _status(criteria: list[AcceptanceCriterion]) -> EvidenceState:
+    def _status(
+        criteria: list[AcceptanceCriterion],
+        tests: list[TestResult],
+        findings: list[Finding],
+    ) -> EvidenceState:
         if not criteria:
             return EvidenceState.IN_REVIEW
-        if any(item.state == EvidenceState.FAILED for item in criteria):
+        if any(item.state == EvidenceState.FAILED for item in criteria) or any(
+            item.state == EvidenceState.FAILED for item in tests
+        ):
             return EvidenceState.FAILED
-        if all(item.state == EvidenceState.VERIFIED for item in criteria):
-            return EvidenceState.VERIFIED
-        if any(item.state == EvidenceState.NEEDS_EVIDENCE for item in criteria):
+        if any(item.severity == "required" for item in findings):
             return EvidenceState.NEEDS_EVIDENCE
-        return EvidenceState.IN_REVIEW
+        if not all(item.state == EvidenceState.VERIFIED for item in criteria):
+            return (
+                EvidenceState.NEEDS_EVIDENCE
+                if any(item.state == EvidenceState.NEEDS_EVIDENCE for item in criteria)
+                else EvidenceState.IN_REVIEW
+            )
+        if not tests or not all(item.state == EvidenceState.VERIFIED for item in tests):
+            return EvidenceState.NEEDS_EVIDENCE
+        return EvidenceState.VERIFIED
+
+    @staticmethod
+    def _decision(record: ReviewRecord, snapshot: GitSnapshot) -> ReviewDecision:
+        if record.decision == ReviewDecision.ACCEPTED and (
+            record.accepted_revision != snapshot.head_revision or snapshot.dirty
+        ):
+            return ReviewDecision.STALE
+        return record.decision
 
     @staticmethod
     def _replay_state(steps: list[ReplayStep]) -> EvidenceState:

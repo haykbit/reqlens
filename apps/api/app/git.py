@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
+from typing import Literal
 from urllib.parse import urlparse
 
 
@@ -8,12 +9,15 @@ class GitRepositoryError(ValueError):
     pass
 
 
+ChangeCategory = Literal["implementation", "test", "migration", "configuration"]
+
+
 @dataclass(frozen=True)
 class GitFileChange:
     path: str
     additions: int
     deletions: int
-    category: str
+    category: ChangeCategory
     diff: str
 
 
@@ -140,7 +144,7 @@ def _untracked_diff(path: Path, relative_path: str) -> str:
     return (header + "\n".join(f"+{line}" for line in lines))[:40_000]
 
 
-def _category(path: str) -> str:
+def _category(path: str) -> ChangeCategory:
     lowered = path.lower()
     parts = Path(lowered).parts
     name = Path(lowered).name

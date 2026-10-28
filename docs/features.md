@@ -2,17 +2,19 @@
 
 This document defines the proposed ReqLens product areas, what each feature covers, and what remains outside its boundary. Feature IDs are stable discussion references, not implementation tickets.
 
+This is a roadmap, not a description of everything currently shipped. Version `0.3.0` implements a narrow slice of repository installation, ticket registration, Git inspection, agent-reported evidence, the local dashboard, and revision-bound review decisions. Test execution, automatic agent event capture, PR previews, browser recording, and provider synchronization remain planned capabilities.
+
 ## MVP vertical slice
 
 The first releasable experience is:
 
 ```text
-Install in repository
+Install ReqLens once
   -> start local ReqLens service
   -> select feature, work item, and Git worktree
   -> work with Codex
   -> inspect changed code and captured decisions
-  -> run configured tests
+  -> report deterministic test results
   -> review requirement coverage and evidence
   -> accept or request changes
 ```
@@ -27,9 +29,9 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 
 **Covers:**
 
-- Install ReqLens as a project development dependency or run it through a package runner.
-- Initialize a small `.reqlens/` configuration inside the target repository.
-- Start a local CLI service and browser dashboard from the repository root.
+- Install ReqLens once as a local developer tool.
+- Start a local CLI service and browser dashboard from any directory.
+- Register target repositories without adding ReqLens files or dependencies to them.
 - Bind to `127.0.0.1` by default so the dashboard is not exposed to the network.
 - Use a configurable preferred port and automatically select another available port when it is occupied.
 - Print and optionally open the final local URL.
@@ -43,7 +45,7 @@ The MVP should prove this single flow before adding more agents, issue trackers,
 - Team accounts, authentication, or remote access in the MVP.
 - Claiming that a particular port will always be available.
 
-**MVP outcome:** A developer can enter an existing repository, run one command, and open ReqLens locally without changing the application code.
+**MVP outcome:** A developer can start ReqLens locally, then register an existing repository without changing its application code.
 
 ### RL-F02 — Product model, labels, and traceable requirements
 

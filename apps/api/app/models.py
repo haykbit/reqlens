@@ -21,6 +21,13 @@ class EvidenceState(StrEnum):
     FAILED = "failed"
 
 
+class ReviewDecision(StrEnum):
+    IN_REVIEW = "in_review"
+    ACCEPTED = "accepted"
+    CHANGES_REQUESTED = "changes_requested"
+    STALE = "stale"
+
+
 class TicketCriterionInput(ApiModel):
     id: str
     title: str
@@ -134,6 +141,9 @@ class ReviewRecord(ApiModel):
     events: list[StoredEvent] = Field(default_factory=list)
     preview_url: str | None = None
     pull_request: int | None = None
+    decision: ReviewDecision = ReviewDecision.IN_REVIEW
+    decision_note: str | None = None
+    accepted_revision: str | None = None
     created_at: str
     updated_at: str
 
@@ -152,6 +162,9 @@ class ProjectContext(ApiModel):
     ticket_source: str
     ticket_url: str | None
     preview_url: str | None
+    decision: ReviewDecision
+    decision_note: str | None
+    accepted_revision: str | None
     dirty: bool
     updated_at: str
 
@@ -263,6 +276,7 @@ class ReviewListItem(ApiModel):
     title: str
     branch: str
     status: EvidenceState
+    decision: ReviewDecision
     updated_at: str
 
 
@@ -278,7 +292,8 @@ class StartReviewResponse(ApiModel):
 
 
 class ReviewActionRequest(ApiModel):
-    action: Literal["sync_repository", "open_preview", "request_changes"]
+    action: Literal["sync_repository", "open_preview", "accept_review", "request_changes"]
+    note: str | None = Field(default=None, max_length=2000)
 
 
 class ActionResponse(ApiModel):

@@ -9,7 +9,7 @@ Use ReqLens as the evidence bridge between product intent and the actual reposit
 
 ## Start the review
 
-1. Run `reqlens health`. If the command is missing, install it from the ReqLens checkout with `uv tool install --editable apps/api`. If the local API is unavailable and the ReqLens checkout is known, start `npm run dev` there and keep it running.
+1. Run `reqlens health`. If the command is missing and the ReqLens checkout is known, run `./scripts/install.sh` there. If the service is unavailable, start `reqlens serve` in a retained session and use the URL it prints.
 2. Read the real ticket with the connected provider tool. If the request came directly from the user and has no provider ticket, use source `manual` and a stable, descriptive reference.
 3. Inspect the target path and confirm it is a Git repository.
 4. Normalize the ticket using the start contract in [references/contracts.md](references/contracts.md). Preserve the ticket wording; do not invent acceptance criteria.
@@ -37,5 +37,7 @@ Use the evidence contract in [references/contracts.md](references/contracts.md).
 ## Finish the work
 
 Run the relevant tests, then perform one final evidence sync. Use `reqlens show REVIEW_ID` to inspect the resulting dashboard payload. The final user response should state the ticket reference, the review ID, and any missing evidence without claiming completion beyond the recorded facts.
+
+Do not accept the review on the user's behalf. ReqLens acceptance is a human decision attached to a clean Git revision.
 
 ReqLens may be unavailable. Continue the engineering work when safe, retain the normalized ticket and evidence payload, then sync once the local service is available. Do not block implementation only because the dashboard is down.

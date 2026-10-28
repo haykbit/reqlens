@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ActivityView } from "@/components/activity";
 import { ChangesView } from "@/components/changes";
-import { StatusBadge, Surface } from "@/components/common";
+import { DecisionBadge, StatusBadge, Surface } from "@/components/common";
 import { RevisionStrip, Sidebar, Topbar } from "@/components/layout";
 import { OverviewView } from "@/components/overview";
 import { ReplayView } from "@/components/replay";
@@ -31,6 +31,13 @@ import type {
 } from "@/types";
 
 const DEFAULT_VIEW: ViewId = "overview";
+const statusCopy = {
+  verified: "verified",
+  needs_evidence: "needsEvidence",
+  in_review: "inReview",
+  pending: "pending",
+  failed: "failed",
+} as const;
 
 export function App() {
   const [locale, setLocale] = useState<Locale>("en");
@@ -44,6 +51,8 @@ export function App() {
   const [selectedChangePath, setSelectedChangePath] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<ReviewAction | null>(null);
   const [notice, setNotice] = useState<ActionResponse | null>(null);
+  const [changeRequestOpen, setChangeRequestOpen] = useState(false);
+  const [changeRequestNote, setChangeRequestNote] = useState("");
 
   const loadReview = useCallback(async (reviewId: string) => {
     const dashboard = await getReview(reviewId);
@@ -58,9 +67,7 @@ export function App() {
     try {
       const nextWorkspace = await getWorkspace();
       setWorkspace(nextWorkspace);
-      const reviewId = preferredReviewId
-        ?? (activeReviewId && nextWorkspace.reviews.some((item) => item.id === activeReviewId) ? activeReviewId : null)
-        ?? nextWorkspace.selected_review_id;
+      const reviewId = preferredReviewId ?? nextWorkspace.selected_review_id;
       setActiveReviewId(reviewId);
       if (reviewId) await loadReview(reviewId);
       else setData(null);
@@ -69,11 +76,11 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, [activeReviewId, loadReview]);
+  }, [loadReview]);
 
   useEffect(() => {
     void load();
-  }, []); // The workspace should load once; selection changes are explicit.
+  }, [load]);
 
   useEffect(() => {
     if (!notice) return;
@@ -103,11 +110,11 @@ export function App() {
     }
   }
 
-  async function runAction(action: ReviewAction) {
+  async function runAction(action: ReviewAction, note?: string) {
     if (!data) return;
     setPendingAction(action);
     try {
-      const response = await createAction(data.project.review_id, action);
+      const response = await createAction(data.project.review_id, action, note);
       setNotice(response);
       if (response.target_url) window.open(response.target_url, "_blank", "noopener,noreferrer");
       if (action !== "open_preview") await load(data.project.review_id);
@@ -137,7 +144,7 @@ export function App() {
       />
 
       <div className="min-w-0 flex-1">
-        <Topbar data={data} locale={locale} onLocaleChange={setLocale} />
+        <Topbar data={data} locale={locale} reviews={workspace.reviews} activeReviewId={activeReviewId ?? data.project.review_id} onReviewChange={(reviewId) => void selectReview(reviewId)} onLocaleChange={setLocale} />
         <RevisionStrip data={data} locale={locale} />
 
         <main className="mx-auto w-full max-w-[1480px] px-4 py-5 sm:px-6 sm:py-7 xl:px-8">
@@ -146,7 +153,9 @@ export function App() {
               <div className="min-w-0 max-w-3xl">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-[10px] font-medium text-neutral-400">{data.project.ticket_reference}</span>
+                  <span className="text-[10px] text-neutral-400">{ui("evidence", locale)}</span>
                   <StatusBadge state={data.status} locale={locale} />
+                  <DecisionBadge decision={data.project.decision} locale={locale} />
                   <span className="inline-flex items-center gap-1 text-[10px] text-neutral-400"><Database className="size-3" />{ui("realData", locale)}</span>
                   <span className="text-[10px] text-neutral-400">{formatUpdated(data.project.updated_at, locale)}</span>
                 </div>
@@ -161,17 +170,13 @@ export function App() {
               </div>
 
               <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <Button variant="outline" onClick={() => void runAction("open_preview")} disabled={pendingAction !== null}>
+                <Button title={data.project.preview_url ? undefined : ui("previewUnavailable", locale)} variant="outline" onClick={() => void runAction("open_preview")} disabled={pendingAction !== null || !data.project.preview_url}>
                   <ArrowUpRight className="size-3.5" />
                   {ui("openPreview", locale)}
                 </Button>
                 <Button onClick={() => void runAction("sync_repository")} disabled={pendingAction !== null}>
                   <RefreshCw className={`size-3.5 ${pendingAction === "sync_repository" ? "animate-spin" : ""}`} />
-                  {ui("syncRepository", locale)}
-                </Button>
-                <Button aria-label={ui("requestChanges", locale)} variant="ghost" onClick={() => void runAction("request_changes")} disabled={pendingAction !== null}>
-                  <CircleAlert className="size-3.5" />
-                  <span className="hidden xl:inline">{ui("requestChanges", locale)}</span>
+                  {ui("syncGit", locale)}
                 </Button>
               </div>
             </div>
@@ -193,12 +198,12 @@ export function App() {
 
             <div key={activeView} className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
               {activeView === "overview" ? (
-                <OverviewView data={data} locale={locale} selectedCriterion={selectedCriterion} onCriterionSelect={(criterion) => setSelectedCriterionId(criterion.id)} />
+                <OverviewView data={data} locale={locale} selectedCriterion={selectedCriterion} onCriterionSelect={(criterion) => setSelectedCriterionId(criterion.id)} onAccept={() => void runAction("accept_review")} onRequestChanges={() => setChangeRequestOpen(true)} pendingAction={pendingAction} />
               ) : null}
               {activeView === "changes" ? (
                 <ChangesView data={data} locale={locale} selectedChange={selectedChange} onChangeSelect={(change) => setSelectedChangePath(change.path)} />
               ) : null}
-              {activeView === "tests" ? <TestsView data={data} locale={locale} onRun={() => void runAction("sync_repository")} /> : null}
+              {activeView === "tests" ? <TestsView data={data} locale={locale} /> : null}
               {activeView === "replay" ? <ReplayView data={data} locale={locale} /> : null}
               {activeView === "activity" ? <ActivityView data={data} locale={locale} /> : null}
             </div>
@@ -207,6 +212,7 @@ export function App() {
       </div>
 
       {notice ? <Notice response={notice} locale={locale} onClose={() => setNotice(null)} /> : null}
+      {changeRequestOpen ? <ChangeRequestDialog locale={locale} note={changeRequestNote} onNoteChange={setChangeRequestNote} onCancel={() => { setChangeRequestOpen(false); setChangeRequestNote(""); }} onSubmit={() => { const note = changeRequestNote.trim(); if (!note) return; setChangeRequestOpen(false); setChangeRequestNote(""); void runAction("request_changes", note); }} /> : null}
     </div>
   );
 }
@@ -216,10 +222,10 @@ function SummaryStrip({ data, locale }: { data: DashboardPayload; locale: Locale
     ? `${Math.round((data.summary.checks_passed / data.summary.checks_total) * 100)}%`
     : ui("waitingForAgent", locale);
   const items = [
-    { label: ui("acceptance", locale), value: `${data.summary.acceptance_verified}/${data.summary.acceptance_total}`, sub: data.summary.acceptance_total > 0 ? ui(data.status === "verified" ? "verified" : "needsEvidence", locale) : ui("waitingForAgent", locale) },
+    { label: ui("acceptance", locale), value: `${data.summary.acceptance_verified}/${data.summary.acceptance_total}`, sub: data.summary.acceptance_total > 0 ? ui(statusCopy[data.status], locale) : ui("waitingForAgent", locale) },
     { label: ui("checks", locale), value: `${data.summary.checks_passed}/${data.summary.checks_total}`, sub: percentage },
     { label: ui("changes", locale), value: `+${data.summary.additions}`, sub: `−${data.summary.deletions}` },
-    { label: ui("openFindings", locale), value: String(data.summary.findings_open), sub: data.summary.findings_open > 0 ? ui("required", locale) : ui("noFindings", locale) },
+    { label: ui("openFindings", locale), value: String(data.summary.findings_open), sub: data.summary.findings_open > 0 ? ui("reviewDetails", locale) : ui("noFindings", locale) },
   ];
 
   return (
@@ -241,13 +247,13 @@ function EmptyWorkspace({ locale, onLocaleChange, onRefresh }: { locale: Locale;
         <div className="grid size-6 place-items-center rounded-md bg-neutral-950 text-[12px] font-semibold text-white">R</div>
         <span className="ml-2.5 text-[13px] font-semibold tracking-[-0.02em]">ReqLens</span>
         <span className="ml-2 rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-neutral-500">local</span>
-        <div className="ml-auto flex rounded-md border border-neutral-200 bg-neutral-50 p-0.5">
+        <div className="ml-auto flex rounded-md border border-neutral-200 bg-neutral-50 p-0.5" role="group" aria-label={ui("language", locale)}>
           {(["en", "es"] as const).map((language) => <button key={language} onClick={() => onLocaleChange(language)} className={`h-5 rounded px-1.5 text-[9px] font-semibold uppercase ${locale === language ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>{language}</button>)}
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-5 py-14 sm:py-20">
         <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700"><span className="size-1.5 rounded-full bg-emerald-500" />API ready · :7332</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700"><span className="size-1.5 rounded-full bg-emerald-500" />{ui("serviceReady", locale)}</span>
           <h1 className="mt-5 text-[28px] font-semibold tracking-[-0.045em] sm:text-[38px]">{ui("noReviews", locale)}</h1>
           <p className="mt-3 max-w-xl text-[14px] leading-6 text-neutral-500">{ui("noReviewsBody", locale)}</p>
         </div>
@@ -263,8 +269,27 @@ function EmptyWorkspace({ locale, onLocaleChange, onRefresh }: { locale: Locale;
             <pre className="mt-4 overflow-x-auto rounded-md border border-neutral-200 bg-neutral-950 p-3 font-mono text-[10px] leading-5 text-neutral-200"><code>reqlens start --project . --ticket ticket.json</code></pre>
           </Surface>
         </div>
-        <Button variant="outline" className="mt-6" onClick={onRefresh}><RefreshCw className="size-3.5" />{ui("refreshEvidence", locale)}</Button>
+        <Button variant="outline" className="mt-6" onClick={onRefresh}><RefreshCw className="size-3.5" />{ui("refreshReviews", locale)}</Button>
       </main>
+    </div>
+  );
+}
+
+function ChangeRequestDialog({ locale, note, onNoteChange, onCancel, onSubmit }: {
+  locale: Locale;
+  note: string;
+  onNoteChange: (note: string) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-neutral-950/20 p-4 backdrop-blur-[1px]" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="change-request-title" className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-5 shadow-[0_20px_60px_rgba(0,0,0,0.16)]">
+        <h2 id="change-request-title" className="text-[16px] font-semibold tracking-[-0.025em] text-neutral-950">{ui("requestChangesTitle", locale)}</h2>
+        <p className="mt-2 text-[12px] leading-5 text-neutral-500">{ui("requestChangesBody", locale)}</p>
+        <textarea autoFocus value={note} onChange={(event) => onNoteChange(event.target.value)} placeholder={ui("requestChangesPlaceholder", locale)} className="mt-4 min-h-28 w-full resize-y rounded-md border border-neutral-200 bg-white p-3 text-[12px] leading-5 text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400" />
+        <div className="mt-4 flex justify-end gap-2"><Button variant="ghost" onClick={onCancel}>{ui("cancel", locale)}</Button><Button onClick={onSubmit} disabled={!note.trim()}>{ui("sendRequest", locale)}</Button></div>
+      </div>
     </div>
   );
 }
@@ -274,8 +299,8 @@ function Notice({ response, locale, onClose }: { response: ActionResponse; local
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 fixed right-4 bottom-4 z-50 flex max-w-sm items-start gap-2.5 rounded-lg border border-neutral-200 bg-white p-3 shadow-[0_12px_30px_rgba(0,0,0,0.09)]">
       <span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${accepted ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{accepted ? <Check className="size-3" /> : <CircleAlert className="size-3" />}</span>
-      <div><p className="text-[11px] font-semibold text-neutral-800">{accepted ? ui("updated", locale) : ui("needsEvidence", locale)}</p><p className="mt-0.5 text-[10px] leading-4 text-neutral-500">{localize(response.message, locale)}</p></div>
-      <button aria-label="Close" className="ml-2 text-neutral-300 hover:text-neutral-600" onClick={onClose}><X className="size-3" /></button>
+      <div><p className="text-[11px] font-semibold text-neutral-800">{accepted ? ui("updated", locale) : ui("actionBlocked", locale)}</p><p className="mt-0.5 text-[10px] leading-4 text-neutral-500">{localize(response.message, locale)}</p></div>
+      <button aria-label={ui("close", locale)} className="ml-2 text-neutral-300 hover:text-neutral-600" onClick={onClose}><X className="size-3" /></button>
     </div>
   );
 }

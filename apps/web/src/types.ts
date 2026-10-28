@@ -6,6 +6,7 @@ export interface LocalizedText {
 }
 
 export type EvidenceState = "verified" | "needs_evidence" | "in_review" | "pending" | "failed";
+export type ReviewDecision = "in_review" | "accepted" | "changes_requested" | "stale";
 
 export interface ProjectContext {
   project_id: string;
@@ -21,6 +22,9 @@ export interface ProjectContext {
   ticket_source: string;
   ticket_url: string | null;
   preview_url: string | null;
+  decision: ReviewDecision;
+  decision_note: string | null;
+  accepted_revision: string | null;
   dirty: boolean;
   updated_at: string;
 }
@@ -132,6 +136,7 @@ export interface ReviewListItem {
   title: string;
   branch: string;
   status: EvidenceState;
+  decision: ReviewDecision;
   updated_at: string;
 }
 
@@ -148,4 +153,4 @@ export interface ActionResponse {
 }
 
 export type ViewId = "overview" | "changes" | "tests" | "replay" | "activity";
-export type ReviewAction = "sync_repository" | "open_preview" | "request_changes";
+export type ReviewAction = "sync_repository" | "open_preview" | "accept_review" | "request_changes";

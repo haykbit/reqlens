@@ -1,16 +1,34 @@
-import { ArrowRight, Check, CircleAlert, Code2, FlaskConical, GitPullRequest, Layers3 } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, Code2, FlaskConical, GitPullRequest, Layers3, MessageSquareText } from "lucide-react";
 
-import { SectionHeading, StateIcon, StatusBadge, Surface, Tag } from "@/components/common";
+import { DecisionBadge, SectionHeading, StateIcon, StatusBadge, Surface, Tag } from "@/components/common";
+import { Button } from "@/components/ui/button";
 import { localize, ui } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { AcceptanceCriterion, DashboardPayload, Locale } from "@/types";
+import type { AcceptanceCriterion, DashboardPayload, Locale, ReviewAction } from "@/types";
 
-export function OverviewView({ data, locale, selectedCriterion, onCriterionSelect }: {
+const severityCopy = {
+  required: "required",
+  recommended: "recommended",
+  optional: "optional",
+} as const;
+
+export function OverviewView({ data, locale, selectedCriterion, onCriterionSelect, onAccept, onRequestChanges, pendingAction }: {
   data: DashboardPayload;
   locale: Locale;
   selectedCriterion: AcceptanceCriterion | null;
   onCriterionSelect: (criterion: AcceptanceCriterion) => void;
+  onAccept: () => void;
+  onRequestChanges: () => void;
+  pendingAction: ReviewAction | null;
 }) {
+  const decisionGuidance = data.project.decision === "accepted"
+    ? ui("reviewAlreadyAccepted", locale)
+    : data.status !== "verified"
+      ? ui("acceptRequiresEvidence", locale)
+      : data.project.dirty
+        ? ui("acceptRequiresClean", locale)
+        : ui("reviewReady", locale);
+
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
       <div className="space-y-4">
@@ -49,7 +67,7 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
                     active ? "bg-neutral-50" : "hover:bg-neutral-50/70",
                   )}
                 >
-                  <span className={cn("mt-0.5 grid size-5 place-items-center rounded-full border", criterion.state === "verified" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700")}>
+                  <span className={cn("mt-0.5 grid size-5 place-items-center rounded-full border", criterion.state === "verified" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : criterion.state === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700")}>
                     <StateIcon state={criterion.state} className="size-3" />
                   </span>
                   <span className="min-w-0">
@@ -113,11 +131,11 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
             </div>
             <p className="mt-1.5 text-[10px] leading-4 text-amber-800/70">{ui("reviewSummaryHint", locale)}</p>
           </div>
-          <div className="p-4">
+          <div className="divide-y divide-neutral-100 px-4">
             {data.findings.map((finding) => (
-              <div key={finding.id}>
+              <div key={finding.id} className="py-4">
                 <div className="flex items-center gap-2">
-                  <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-red-700">{finding.severity}</span>
+                  <span className={cn("rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider", finding.severity === "required" ? "border-red-200 bg-red-50 text-red-700" : finding.severity === "recommended" ? "border-amber-200 bg-amber-50 text-amber-700" : "border-neutral-200 bg-neutral-50 text-neutral-600")}>{ui(severityCopy[finding.severity], locale)}</span>
                   <span className="text-[9px] font-medium uppercase tracking-wider text-neutral-400">{finding.category}</span>
                 </div>
                 <p className="mt-2.5 text-[12px] font-medium leading-4 text-neutral-800">{localize(finding.title, locale)}</p>
@@ -130,6 +148,19 @@ export function OverviewView({ data, locale, selectedCriterion, onCriterionSelec
             ))}
           </div>
         </Surface> : <Surface className="p-4"><div className="flex items-center gap-2 text-[11px] font-medium text-emerald-700"><Check className="size-3.5" />{ui("noFindings", locale)}</div></Surface>}
+
+        <Surface className="overflow-hidden">
+          <div className="border-b border-neutral-100 px-4 py-3.5"><SectionHeading title={ui("reviewDecision", locale)} description={ui("reviewDecisionHint", locale)} /></div>
+          <div className="p-4">
+            <div className="flex items-center justify-between gap-3"><DecisionBadge decision={data.project.decision} locale={locale} />{data.project.accepted_revision ? <span className="font-mono text-[9px] text-neutral-400">{data.project.accepted_revision}</span> : null}</div>
+            {data.project.decision_note ? <div className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 p-2.5"><p className="text-[9px] font-medium uppercase tracking-wider text-neutral-400">{ui("decisionNote", locale)}</p><p className="mt-1 text-[10px] leading-4 text-neutral-700">{data.project.decision_note}</p></div> : null}
+            <p id="decision-guidance" className="mt-3 text-[10px] leading-4 text-neutral-500">{decisionGuidance}</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Button aria-describedby="decision-guidance" title={decisionGuidance} onClick={onAccept} disabled={pendingAction !== null || data.status !== "verified" || data.project.dirty || data.project.decision === "accepted"}><Check className="size-3.5" />{ui("acceptReview", locale)}</Button>
+              <Button variant="outline" onClick={onRequestChanges} disabled={pendingAction !== null}><MessageSquareText className="size-3.5" />{ui("requestChanges", locale)}</Button>
+            </div>
+          </div>
+        </Surface>
 
         <div className="grid grid-cols-2 gap-2">
           <Metric icon={Layers3} label={ui("acceptance", locale)} value={`${data.summary.acceptance_verified}/${data.summary.acceptance_total}`} />

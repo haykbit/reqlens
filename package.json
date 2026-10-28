@@ -1,6 +1,6 @@
 {
   "name": "reqlens",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "workspaces": [
     "apps/web"
@@ -9,7 +9,8 @@
     "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "uv run --directory apps/api fastapi dev app/main.py --host 127.0.0.1 --port 7332",
     "dev:web": "npm run dev --workspace @reqlens/web",
-    "install:cli": "uv tool install --editable apps/api",
+    "install:local": "./scripts/install.sh",
+    "serve": "reqlens serve --open",
     "build": "npm run build --workspace @reqlens/web",
     "test": "npm run test:api && npm run test:web",
     "test:api": "uv run --directory apps/api pytest",
